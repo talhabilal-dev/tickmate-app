@@ -1,5 +1,5 @@
 import { createAgent, gemini } from "@inngest/agent-kit";
-import ENV from "../config/env.config.ts";
+import {ENV} from "../config/env.config.js";
 
 const analyzeTicket = async (ticket) => {
   const supportAgent = createAgent({

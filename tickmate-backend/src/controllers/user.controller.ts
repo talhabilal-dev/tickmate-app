@@ -1,16 +1,15 @@
 import argon2 from "argon2";
 import db from "../config/db.config.js";
-import { signupSchema } from "../validations/user.schema.js";
+import { signupSchema, verifySchema } from "../schemas/user.schema.js";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 import { inngest } from "../inngest/client.js";
 import type { Request, Response } from "express";
-import { usersTable } from "../models/model.js";
-import { eq } from "drizzle-orm";
+import { usersTable, magicLinksTable } from "../models/model.js";
+import { and, eq } from "drizzle-orm";
+
 
 export const signup = async (req: Request, res: Response) => {
-
-  console.log("data", req.body)
 
   const { name, email, password, skills = [] } = req.body;
 
@@ -42,15 +41,16 @@ export const signup = async (req: Request, res: Response) => {
       password: hashedPassword,
       skills,
     }).returning({
+      id: usersTable.id,
       name: usersTable.name,
       email: usersTable.email,
       skills: usersTable.skills
     })
 
-    // await inngest.send({
-    //   name: "user/signup",
-    //   data: { email },
-    // });
+    await inngest.send({
+      name: "user/signup",
+      data: { userId: newUser?.id, email: newUser?.email },
+    });
 
     return res
       .status(201)
@@ -71,6 +71,106 @@ export const signup = async (req: Request, res: Response) => {
 
   }
 };
+
+export const verify = async (req: Request, res: Response) => {
+
+  const { token } = req.body;
+  const validation = verifySchema.safeParse({ token });
+
+  if (!validation.success) {
+    const errors = validation.error?.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }));
+    return res.status(400).json({ errors, success: false });
+  }
+
+  try {
+
+    if (!ENV.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT_SECRET is not configured",
+      });
+    }
+
+    const payload = jwt.verify(token, ENV.JWT_SECRET) as {
+      userId?: string | number;
+      email?: string;
+      purpose?: string;
+    };
+
+    const userId = Number(payload.userId);
+    const purpose = payload.purpose;
+
+    if (!userId || !purpose) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid token payload",
+      });
+    }
+
+    const [verificationRecords] = await db
+      .select()
+      .from(magicLinksTable)
+      .where(
+        and(
+          eq(magicLinksTable.userId, userId),
+          eq(magicLinksTable.purpose, purpose as "email_verification" | "password_reset" | "password_change")
+        )
+      );
+
+    if (!verificationRecords) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or already used token",
+      });
+    }
+
+
+    if (verificationRecords?.expiresAt < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Token has expired",
+      });
+    }
+
+    await db.update(usersTable).set({ isActive: true }).where(eq(usersTable.id, userId));
+    await db.delete(magicLinksTable).where(eq(magicLinksTable.id, verificationRecords.id));
+
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
+
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(400).json({
+        success: false,
+        message: "Token has expired",
+      });
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid token",
+      });
+    }
+
+    if (error instanceof Error) {
+      console.log("Internal Server Error", error.message)
+    } else {
+      console.log("Internal Server Error", error)
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+
+  }
+
+}
 
 export const login = async (req, res) => {
   const { email, password } = req.body;

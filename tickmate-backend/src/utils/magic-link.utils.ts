@@ -1,5 +1,4 @@
-import argon2 from "argon2";
-import { randomBytes } from "node:crypto";
+import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 
 export type MagicLinkPurpose =
@@ -9,6 +8,7 @@ export type MagicLinkPurpose =
 
 type GenerateMagicLinkInput = {
     userId: string;
+    email: string;
     purpose: MagicLinkPurpose;
     baseUrl?: string;
     expiresInMinutes?: number;
@@ -16,7 +16,6 @@ type GenerateMagicLinkInput = {
 
 type GenerateMagicLinkResult = {
     rawToken: string;
-    tokenHash: string;
     link: string;
     expiresAt: Date;
 };
@@ -25,6 +24,7 @@ const MAGIC_LINK_PATH = "/auth/magic-link";
 
 export const generateMagicLink = async ({
     userId,
+    email,
     purpose,
     baseUrl = ENV.APP_URL,
     expiresInMinutes = 30,
@@ -37,22 +37,30 @@ export const generateMagicLink = async ({
         throw new Error("userId is required to generate a magic link.");
     }
 
+    if (!email) {
+        throw new Error("email is required to generate a magic link.");
+    }
+
+    if (!ENV.JWT_SECRET) {
+        throw new Error("JWT_SECRET is not set. Cannot sign magic link token.");
+    }
+
     if (expiresInMinutes <= 0) {
         throw new Error("expiresInMinutes must be greater than 0.");
     }
 
-    const rawToken = randomBytes(32).toString("hex");
-    const tokenHash = await argon2.hash(rawToken);
+    const rawToken = jwt.sign(
+        { userId, email, purpose },
+        ENV.JWT_SECRET,
+        { expiresIn: expiresInMinutes * 60 }
+    );
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
     const linkUrl = new URL(MAGIC_LINK_PATH, baseUrl);
     linkUrl.searchParams.set("token", rawToken);
-    linkUrl.searchParams.set("userId", userId);
-    linkUrl.searchParams.set("purpose", purpose);
 
     return {
         rawToken,
-        tokenHash,
         link: linkUrl.toString(),
         expiresAt,
     };

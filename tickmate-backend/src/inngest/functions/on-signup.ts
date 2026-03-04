@@ -1,7 +1,12 @@
 import { NonRetriableError } from "inngest";
-import userModel from "../../models/user.model.js";
-import { inngest } from "../client.js";
+import { magicLinksTable, usersTable } from "../../models/model.js";
+import db from "../../config/db.config.js";
+import { eq } from "drizzle-orm";
 import { sendEmail } from "../../utils/mailer.utils.js";
+import { inngest } from "../client.js";
+import { generateMagicLink } from "../../utils/magic-link.utils.js";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 export const onUserSignup = inngest.createFunction(
   { id: "on-user-signup", retries: 3 },
@@ -9,26 +14,65 @@ export const onUserSignup = inngest.createFunction(
 
   async ({ event, step }) => {
     try {
-      const { email } = event.data;
+      const { email, userId } = event.data;
 
-      const user = await step.run("get-user-email", async () => {
-        const userObject = await userModel.findOne({ email });
+      const user = await step.run("get-user", async () => {
+        if (!userId && !email) {
+          throw new NonRetriableError("userId or email is required");
+        }
+
+        const [userObject] = userId
+          ? await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, Number(userId)))
+          : await db.select().from(usersTable).where(eq(usersTable.email, email));
+
         if (!userObject) throw new NonRetriableError("User not found");
         return userObject;
       });
 
-      await step.run("send-welcome-email", async () => {
+      const magicLink = await step.run("create-email-verification-link", async () => {
+        const { rawToken, link, expiresAt } = await generateMagicLink({
+          userId: String(user.id),
+          email: user.email,
+          purpose: "email_verification",
+        });
+
+        await db.insert(magicLinksTable).values({
+          userId: user.id,
+          tokenHash: rawToken,
+          purpose: "email_verification",
+          expiresAt,
+        });
+
+        return { link };
+      });
+
+      await step.run("send-verification-email", async () => {
+        const templatePath = resolve(
+          process.cwd(),
+          "public/emails/verification-email.html"
+        );
+        const template = await readFile(templatePath, "utf-8");
+        const html = template.replaceAll("{{MAGIC_LINK}}", magicLink.link);
+
         await sendEmail(
           user.email,
-          "Welcome to TickMate",
-          `Hi ${user.name}, This is a welcome email from TickMate`
+          "Verify your TickMate account",
+          `Hi ${user.name}, verify your email using the magic link sent in this message.`,
+          html
         );
       });
 
       return { success: true };
     } catch (error) {
-      console.error("Error in onUserSignup:", error);
-      return { success: false, error: error.message };
+      if (error instanceof Error) {
+        console.error("Error in onUserSignup function:", error.message);
+      } else {
+        console.error("Unknown error in onUserSignup function:", error);
+      }
+      throw error;
     }
   }
 );

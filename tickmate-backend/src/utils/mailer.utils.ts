@@ -5,10 +5,15 @@ if (!ENV.RESEND_API_KEY) {
   throw new Error("RESEND_API_KEY is not defined in environment variables");
 }
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  text: string,
+  customHtml?: string
+) => {
   const resend = new Resend(ENV.RESEND_API_KEY);
 
-  const html = `
+  const html = customHtml ?? `
     <!DOCTYPE html>
     <html lang="en">
       <head>

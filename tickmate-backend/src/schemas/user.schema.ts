@@ -7,3 +7,6 @@ export const signupSchema = zod.object({
     skills: zod.array(zod.string()).optional(),
 });
 
+export const verifySchema = zod.object({
+    token: zod.string().min(1, "Token is required"),
+});

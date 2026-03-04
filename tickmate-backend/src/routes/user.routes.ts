@@ -1,6 +1,7 @@
 import express, { Router } from "express";
 import {
   signup,
+  verify
   // login,
   // logout,
   // updateSkills,
@@ -13,6 +14,7 @@ import {
 const router: Router = express.Router();
 
 router.post("/register", signup);
+router.post("/verify", verify);
 // router.post("/login", login);
 // router.post("/logout", verifyAuthToken, logout);
 // router.put("/update-skills", verifyAuthToken, updateSkills);
