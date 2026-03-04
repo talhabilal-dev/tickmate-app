@@ -1,6 +1,6 @@
 import { inngest } from "../client.ts";
-import Ticket from "../../models/ticket.model.ts";
-import User from "../../models/user.model.ts";
+import Ticket from "../../models/ticket.model.js";
+import User from "../../models/user.model.js";
 import { NonRetriableError } from "inngest";
 import { sendEmail } from "../../utils/mailer.utils.ts";
 import analyzeTicket from "../../utils/agent.utils.ts";

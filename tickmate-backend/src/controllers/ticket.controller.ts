@@ -1,6 +1,6 @@
 import { inngest } from "../inngest/client.ts";
-import Ticket from "../models/ticket.model.ts";
-import User from "../models/user.model.ts";
+import Ticket from "../models/ticket.model.js";
+import User from "../models/user.model.js";
 
 export const createTicket = async (req, res) => {
   try {

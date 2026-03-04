@@ -1,51 +1,74 @@
 import argon2 from "argon2";
-import userModel from "../models/user.model.ts";
+import db from "../config/db.config.js";
+import { signupSchema } from "../validations/user.schema.js";
 import jwt from "jsonwebtoken";
-import ENV from "../config/env.config.ts";
-import { inngest } from "../inngest/client.ts";
+import { ENV } from "../config/env.config.js";
+import { inngest } from "../inngest/client.js";
+import type { Request, Response } from "express";
+import { usersTable } from "../models/model.js";
+import { eq } from "drizzle-orm";
 
-export const signup = async (req, res) => {
+export const signup = async (req: Request, res: Response) => {
+
+  console.log("data", req.body)
+
   const { name, email, password, skills = [] } = req.body;
 
-  if (!name || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Missing required fields", success: false });
-  }
+  const validation = signupSchema.safeParse({ name, email, password, skills });
 
+  if (!validation.success) {
+    const errors = validation.error?.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }));
+    return res.status(400).json({ errors, success: false });
+  }
   try {
-    const existingUser = await userModel.findOne({ email });
+
+    const [existingUser] = await db.select().from(usersTable).where(eq(usersTable.email, email))
+
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "User already exists", success: false });
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
     }
 
     const hashedPassword = await argon2.hash(password);
 
-    const user = await userModel.create({
+    const [newUser] = await db.insert(usersTable).values({
       name,
       email,
       password: hashedPassword,
-      role: "user",
       skills,
-    });
+    }).returning({
+      name: usersTable.name,
+      email: usersTable.email,
+      skills: usersTable.skills
+    })
 
-    await inngest.send({
-      name: "user/signup",
-      data: { email },
-    });
+    // await inngest.send({
+    //   name: "user/signup",
+    //   data: { email },
+    // });
 
     return res
       .status(201)
-      .json({ success: true, message: "User created successfully" });
+      .json({ success: true, message: "User created successfully", user: newUser });
   } catch (error) {
-    console.error("Error creating user:", error.message);
+
+    if (error instanceof Error) {
+      console.log("Internal Server Error", error.message)
+    } else {
+      console.log("Internal Server Error", error)
+    }
+
     return res.status(500).json({
-      error: error.message,
       success: false,
       message: "Internal server error",
     });
+
+
   }
 };
 
