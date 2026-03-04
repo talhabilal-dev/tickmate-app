@@ -1,0 +1,35 @@
+{
+  "name": "tickmate-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.2",
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
+    "inngest": "^3.52.6",
+    "jsonwebtoken": "^9.0.3",
+    "langchain": "^1.2.29",
+    "pg": "^8.19.0",
+    "resend": "^6.9.3",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "@types/pg": "^8.18.0",
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.21.0"
+  }
+}
