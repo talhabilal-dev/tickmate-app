@@ -1,7 +1,22 @@
 import jwt from "jsonwebtoken";
-import ENV from "../config/env.config.ts";
+import { ENV } from "../config/env.config.js";
+import type { NextFunction, Request, Response } from "express";
 
-export const verifyAuthToken = (req, res, next) => {
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        role: string;
+        isActive: boolean;
+      };
+    }
+  }
+}
+
+
+
+export const verifyAuthToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     let token = req.cookies?.token;
     // Check for Bearer token in Authorization header if not in cookies
@@ -19,8 +34,16 @@ export const verifyAuthToken = (req, res, next) => {
         .json({ message: "Authentication token missing", success: false });
     }
 
+    if (!ENV.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not set in environment variables");
+    }
+
     const decoded = jwt.verify(token, ENV.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded as {
+      userId: string;
+      role: string;
+      isActive: boolean;
+    };
 
     if (!req.user) {
       return res

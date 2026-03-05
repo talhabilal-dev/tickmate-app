@@ -15,7 +15,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.30.2",
+  "packageManager": "pnpm@10.30.3",
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "argon2": "^0.44.0",
@@ -29,6 +29,7 @@
     "langchain": "^1.2.29",
     "pg": "^8.19.0",
     "resend": "^6.9.3",
+    "stripe": "^20.4.0",
     "typescript": "^5.9.3",
     "zod": "^4.3.6"
   },

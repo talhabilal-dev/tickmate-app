@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import userRoutes from "./routes/user.routes.js";
 import { inngest } from "./inngest/client.js";
 import { onUserSignup } from "./inngest/functions/on-signup.js";
+import { onUserForgotPassword } from "./inngest/functions/on-forgot-password.js";
 import { serve } from "inngest/express";
 
 
@@ -19,7 +20,7 @@ app.use(
   "/api/inngest",
   serve({
     client: inngest,
-    functions: [onUserSignup],
+    functions: [onUserSignup, onUserForgotPassword],
   })
 );
 app.use("/api/auth", userRoutes

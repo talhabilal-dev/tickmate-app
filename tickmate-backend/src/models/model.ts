@@ -30,6 +30,7 @@ export const magicLinkPurposeEnum = pgEnum("magic_link_purpose", [
 export const usersTable = pgTable("users", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     name: varchar("name", { length: 255 }).notNull(),
+    username: varchar("username", { length: 255 }).notNull().unique(),
     email: varchar("email", { length: 255 }).notNull().unique(),
     loginTime: timestamp("login_time", { withTimezone: true })
         .defaultNow()
