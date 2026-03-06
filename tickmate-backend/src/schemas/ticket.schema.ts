@@ -3,7 +3,7 @@ import zod from "zod";
 export const createTicketSchema = zod
   .object({
     title: zod.string().trim().min(1, "Title is required").max(255, "Title is too long"),
-    description: zod.string().trim().min(1, "Description is required"),
+    description: zod.string().trim().min(1, "Description is required").max(1000, "Description is too long"),
     category: zod.string().trim().min(1, "Category is required").max(255, "Category is too long"),
     priority: zod.enum(["low", "medium", "high"]).optional(),
     deadline: zod.coerce.date().optional(),
@@ -45,7 +45,7 @@ export const editTicketSchema = zod
 export const adminCreateTicketSchema = zod
   .object({
     title: zod.string().trim().min(1, "Title is required").max(255, "Title is too long"),
-    description: zod.string().trim().min(1, "Description is required"),
+    description: zod.string().trim().min(1, "Description is required").max(1000, "Description is too long"),
     category: zod.string().trim().min(1, "Category is required").max(255, "Category is too long"),
     assignedTo: zod.coerce.number().int().positive("Valid moderator user id is required"),
     helpfulNotes: zod.string().trim().min(1, "Helpful notes are required"),

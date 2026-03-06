@@ -1,4 +1,4 @@
-import { ChatGoogle } from "@langchain/google";
+import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { ENV } from "../config/env.config.js";
@@ -17,14 +17,13 @@ type AnalyzeTicketInput = {
   description: string;
 };
 
-const geminiApiKey = ENV.GEMINI_API_KEY;
-if (!geminiApiKey) {
-  throw new Error("GEMINI_API_KEY is required to analyze tickets");
+const openaiApiKey = ENV.OPENAI_API_KEY;
+if (!openaiApiKey) {
+  throw new Error("OPENAI_API_KEY is required to analyze tickets");
 }
 
-const model = new ChatGoogle({
-  model: "gemini-2.5-flash",
-  apiKey: geminiApiKey,
+const model = new ChatOpenAI({
+  model: "gpt-4.1-mini",
   temperature: 0.1,
 });
 
