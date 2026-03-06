@@ -12,8 +12,63 @@ import {
   createTicketSchema,
   deleteTicketSchema,
   editTicketSchema,
+  similarTicketSearchSchema,
   ticketReplySchema,
 } from "../schemas/ticket.schema.js";
+import {
+  deleteTicketVector,
+  searchSimilarResolvedPublicTickets,
+  upsertResolvedPublicTicketVector,
+} from "../utils/vector-db.utils.js";
+
+export const getSimilarResolvedTickets = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
+    const validation = similarTicketSearchSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
+    const { title, description, category, limit } = validation.data;
+
+    const searchInput: {
+      title: string;
+      description: string;
+      category?: string;
+      limit?: number;
+    } = {
+      title,
+      description,
+    };
+
+    if (typeof category !== "undefined") {
+      searchInput.category = category;
+    }
+
+    if (typeof limit !== "undefined") {
+      searchInput.limit = limit;
+    }
+
+    const similarTickets = await searchSimilarResolvedPublicTickets(searchInput);
+
+    return sendSuccess(res, 200, {
+      message: "Similar tickets fetched successfully",
+      tickets: similarTickets,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching similar tickets", error.message);
+    } else {
+      console.error("Error fetching similar tickets", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
+  }
+};
 
 export const createTicket = async (req: Request, res: Response) => {
   try {
@@ -210,6 +265,20 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
       return sendError(res, 500, {
         message: "Failed to update ticket status",
       });
+    }
+
+    try {
+      if (updatedTicket.isPublic) {
+        await upsertResolvedPublicTicketVector(updatedTicket);
+      } else {
+        await deleteTicketVector(updatedTicket.id);
+      }
+    } catch (vectorError) {
+      if (vectorError instanceof Error) {
+        console.error("Vector sync failed after status update:", vectorError.message);
+      } else {
+        console.error("Vector sync failed after status update:", vectorError);
+      }
     }
 
     return sendSuccess(res, 200, {
@@ -531,6 +600,16 @@ export const deleteTicket = async (req: Request, res: Response) => {
       });
     }
 
+    try {
+      await deleteTicketVector(deletedTicket.id);
+    } catch (vectorError) {
+      if (vectorError instanceof Error) {
+        console.error("Vector delete failed after ticket deletion:", vectorError.message);
+      } else {
+        console.error("Vector delete failed after ticket deletion:", vectorError);
+      }
+    }
+
     return sendSuccess(res, 200, {
       message: "Ticket deleted successfully",
       ticket: deletedTicket,
@@ -575,6 +654,7 @@ export const editTicket = async (req: Request, res: Response) => {
     const [ticket] = await db
       .select({
         id: ticketsTable.id,
+        status: ticketsTable.status,
         createdBy: ticketsTable.createdBy,
         assignedTo: ticketsTable.assignedTo,
       })
@@ -595,6 +675,12 @@ export const editTicket = async (req: Request, res: Response) => {
     ) {
       return sendError(res, 403, {
         message: "You are not allowed to edit this ticket",
+      });
+    }
+
+    if (ticket.status === "completed") {
+      return sendError(res, 400, {
+        message: "Completed tickets cannot be edited",
       });
     }
 

@@ -1,19 +1,27 @@
-import express from "express";
+import express, { Router } from "express";
 import {
+  adminLogin,
+  adminLogout,
+  createTicketByAdmin,
+  createUserByAdmin,
   getAllUsers,
   getAllTickets,
   getAdminDashboard,
   updateUser,
   deleteUser,
-} from "../controllers/admin.controller.ts";
-import { verifyAuthToken } from "../middlewares/auth.middleware.ts";
+} from "../controllers/admin.controller.js";
+import { verifyAdminToken } from "../middlewares/admin.middleware.js";
 
-const router = express.Router();
+const router: Router = express.Router();
 
-router.get("/users", verifyAuthToken, getAllUsers);
-router.get("/tickets", verifyAuthToken, getAllTickets);
-router.get("/dashboard", verifyAuthToken, getAdminDashboard);
-router.put("/update-user", verifyAuthToken, updateUser);
-router.delete("/delete-user", verifyAuthToken, deleteUser);
+router.post("/login", adminLogin);
+router.post("/logout", verifyAdminToken, adminLogout);
+router.post("/create-user", verifyAdminToken, createUserByAdmin);
+router.post("/create-ticket", verifyAdminToken, createTicketByAdmin);
+router.get("/users", verifyAdminToken, getAllUsers);
+router.get("/tickets", verifyAdminToken, getAllTickets);
+router.get("/dashboard", verifyAdminToken, getAdminDashboard);
+router.put("/update-user", verifyAdminToken, updateUser);
+router.delete("/delete-user", verifyAdminToken, deleteUser);
 
 export default router;

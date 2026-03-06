@@ -36,3 +36,54 @@ export const updateUserSchema = zod.object({
 export const usernameAvailabilitySchema = zod.object({
     username: zod.string().min(3, "Username must be at least 3 characters long"),
 });
+
+export const adminCreateUserSchema = zod.object({
+    name: zod.string().min(1, "Name is required"),
+    username: zod.string().min(3, "Username must be at least 3 characters long"),
+    email: zod.string().email("Invalid email address"),
+    password: zod.string().min(6, "Password must be at least 6 characters long"),
+    skills: zod.array(zod.string()).optional(),
+    role: zod.enum(["user", "moderator", "admin"]).optional(),
+});
+
+const idLikeSchema = zod.union([
+    zod.number().int().positive(),
+    zod.string().regex(/^\d+$/, "id must be a positive integer"),
+]);
+
+export const adminUpdateUserSchema = zod
+    .object({
+        _id: idLikeSchema.optional(),
+        userId: idLikeSchema.optional(),
+        name: zod.string().min(1, "Name cannot be empty").optional(),
+        username: zod.string().min(3, "Username must be at least 3 characters long").optional(),
+        email: zod.string().email("Invalid email address").optional(),
+        skills: zod.array(zod.string()).optional(),
+        role: zod.enum(["user", "moderator", "admin"]).optional(),
+        isActive: zod.boolean().optional(),
+    })
+    .superRefine((data, ctx) => {
+        if (typeof data._id === "undefined" && typeof data.userId === "undefined") {
+            ctx.addIssue({
+                code: zod.ZodIssueCode.custom,
+                path: ["userId"],
+                message: "_id or userId is required",
+            });
+        }
+
+        const hasUpdateField =
+            typeof data.name !== "undefined" ||
+            typeof data.username !== "undefined" ||
+            typeof data.email !== "undefined" ||
+            typeof data.skills !== "undefined" ||
+            typeof data.role !== "undefined" ||
+            typeof data.isActive !== "undefined";
+
+        if (!hasUpdateField) {
+            ctx.addIssue({
+                code: zod.ZodIssueCode.custom,
+                path: ["name"],
+                message: "At least one updatable field is required",
+            });
+        }
+    });

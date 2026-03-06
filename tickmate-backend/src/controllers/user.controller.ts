@@ -253,23 +253,6 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "1d" }
     );
 
-    let adminToken = null;
-    if (user.role === "admin") {
-      adminToken = jwt.sign(
-        {
-          adminId: user.id.toString(),
-          role: "admin",
-          scope: "full-access",
-        } as {
-          adminId: string;
-          role: string;
-          scope: string;
-        },
-        ENV.JWT_SECRET!,
-        { expiresIn: "12h" }
-      );
-    }
-
     await db.update(usersTable).set({ loginTime: new Date() }).where(eq(usersTable.id, user.id));
 
     res.cookie("token", token, {
@@ -279,16 +262,6 @@ export const login = async (req: Request, res: Response) => {
       domain: ENV.COOKIE_DOMAIN,
       maxAge: 24 * 60 * 60 * 1000,
     });
-
-    if (adminToken) {
-      res.cookie("adminToken", adminToken, {
-        httpOnly: true,
-        secure: true,
-        domain: ENV.COOKIE_DOMAIN,
-        sameSite: "none",
-        maxAge: 12 * 60 * 60 * 1000,
-      });
-    }
 
     return sendSuccess(res, 200, {
       message: "User logged in successfully",
@@ -319,13 +292,6 @@ export const logout = async (req: Request, res: Response) => {
       domain: ENV.NODE_ENV === "development" ? undefined : ENV.COOKIE_DOMAIN,
       sameSite: "none",
     });
-    res.clearCookie("adminToken", {
-      httpOnly: true,
-      secure: true,
-      domain: ENV.NODE_ENV === "development" ? undefined : ENV.COOKIE_DOMAIN,
-      sameSite: "none",
-    });
-
     return sendSuccess(res, 200, {
       message: "User logged out successfully",
     });

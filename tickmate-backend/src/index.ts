@@ -9,6 +9,7 @@ import { onUserForgotPassword } from "./inngest/functions/on-forgot-password.js"
 import { serve } from "inngest/express";
 import ticketRoutes from "./routes/ticket.routes.js";
 import { onTicketCreated } from "./inngest/functions/on-ticket-create.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/auth", userRoutes
 );
 
 app.use("/api/tickets", ticketRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (_req: Request, res: Response) => res.send("Hello World!"));
 

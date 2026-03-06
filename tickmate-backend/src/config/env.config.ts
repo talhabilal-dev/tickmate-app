@@ -14,6 +14,10 @@ type EnvConfig = {
   APP_URL: string | undefined;
   NODE_ENV: string | undefined;
   EMAIL_FROM: string | undefined;
+  OPENAI_API_KEY: string | undefined;
+  QDRANT_URL: string | undefined;
+  QDRANT_API_KEY: string | undefined;
+  SIMILAR_TICKET_MIN_SCORE: string | undefined;
 };
 
 export const ENV: EnvConfig = {
@@ -28,5 +32,9 @@ export const ENV: EnvConfig = {
   APP_URL: process.env.APP_URL,
   NODE_ENV: process.env.NODE_ENV,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  QDRANT_URL: process.env.QDRANT_URL,
+  QDRANT_API_KEY: process.env.QDRANT_API_KEY,
+  SIMILAR_TICKET_MIN_SCORE: process.env.SIMILAR_TICKET_MIN_SCORE,
 };
 

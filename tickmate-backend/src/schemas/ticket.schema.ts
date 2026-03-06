@@ -41,3 +41,26 @@ export const editTicketSchema = zod
     isPublic: zod.boolean().optional(),
   })
   .strip();
+
+export const adminCreateTicketSchema = zod
+  .object({
+    title: zod.string().trim().min(1, "Title is required").max(255, "Title is too long"),
+    description: zod.string().trim().min(1, "Description is required"),
+    category: zod.string().trim().min(1, "Category is required").max(255, "Category is too long"),
+    assignedTo: zod.coerce.number().int().positive("Valid moderator user id is required"),
+    helpfulNotes: zod.string().trim().min(1, "Helpful notes are required"),
+    priority: zod.enum(["low", "medium", "high"]).optional(),
+    deadline: zod.coerce.date().optional(),
+    relatedSkills: zod.array(zod.string().trim().min(1)).optional(),
+    isPublic: zod.boolean().optional(),
+  })
+  .strip();
+
+export const similarTicketSearchSchema = zod
+  .object({
+    title: zod.string().trim().min(1, "Title is required"),
+    description: zod.string().trim().min(1, "Description is required"),
+    category: zod.string().trim().optional(),
+    limit: zod.coerce.number().int().min(1).max(20).optional(),
+  })
+  .strip();

@@ -5,6 +5,7 @@ import {
   createTicket,
   deleteTicket,
   editTicket,
+  getSimilarResolvedTickets,
   getTickets,
   getUserTicketSummary,
   ticketReply,
@@ -14,6 +15,7 @@ import {
 const router : Router = express.Router();
 
 router.get("/", verifyAuthToken, getTickets);
+router.post("/similar", verifyAuthToken, getSimilarResolvedTickets);
 router.post("/", verifyAuthToken, createTicket);
 router.put("/status/:id", verifyAuthToken, toggleTicketStatus);
 router.get("/get-assigned", verifyAuthToken, assignedTickets);

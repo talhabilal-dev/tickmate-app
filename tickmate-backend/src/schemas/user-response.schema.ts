@@ -14,4 +14,9 @@ export const userResponseSchema = zod
   })
   .strip();
 
+export const usersListResponseSchema = zod.object({
+  message: zod.string(),
+  users: zod.array(userResponseSchema),
+});
+
 export const serializeUserResponse = (user: unknown) => userResponseSchema.parse(user);
