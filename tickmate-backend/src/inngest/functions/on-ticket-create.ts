@@ -1,9 +1,10 @@
-import { inngest } from "../client.ts";
-import Ticket from "../../models/ticket.model.js";
-import User from "../../models/user.model.js";
+import { inngest } from "../client.js";
 import { NonRetriableError } from "inngest";
-import { sendEmail } from "../../utils/mailer.utils.ts";
-import analyzeTicket from "../../utils/agent.utils.ts";
+import { sendEmail } from "../../utils/mailer.utils.js";
+import analyzeTicket from "../../utils/agent.utils.js";
+import db from "../../config/db.config.js";
+import { ticketsTable, usersTable } from "../../models/model.js";
+import { and, eq, ilike, or, sql } from "drizzle-orm";
 
 export const onTicketCreated = inngest.createFunction(
   { id: "on-ticket-created", retries: 2 },
@@ -11,60 +12,139 @@ export const onTicketCreated = inngest.createFunction(
   async ({ event, step }) => {
     try {
       const { ticketId } = event.data;
+      const parsedTicketId = Number(ticketId);
+
+      if (Number.isNaN(parsedTicketId)) {
+        throw new NonRetriableError("Invalid ticket id");
+      }
+
       const ticket = await step.run("fetch-ticket", async () => {
-        const ticketObject = await Ticket.findById(ticketId);
+        const [ticketObject] = await db
+          .select({
+            id: ticketsTable.id,
+            title: ticketsTable.title,
+            description: ticketsTable.description,
+            relatedSkills: ticketsTable.relatedSkills,
+          })
+          .from(ticketsTable)
+          .where(eq(ticketsTable.id, parsedTicketId));
+
         if (!ticketObject) {
           throw new NonRetriableError("Ticket not found");
         }
+
         return ticketObject;
       });
 
       await step.run("update-ticket-status", async () => {
-        await Ticket.findByIdAndUpdate(ticket._id, { status: "todo" });
+        await db
+          .update(ticketsTable)
+          .set({
+            status: "pending",
+            updatedAt: new Date(),
+          })
+          .where(eq(ticketsTable.id, ticket.id));
       });
 
       const aiResponse = await analyzeTicket(ticket);
 
-      const relatedskills = await step.run("ai-processing", async () => {
-        let skills = [];
+      const relatedSkills = await step.run("ai-processing", async () => {
+        let skills: string[] = [];
+
         if (aiResponse) {
-          await Ticket.findByIdAndUpdate(ticket._id, {
-            priority: !["low", "medium", "high"].includes(aiResponse.priority)
-              ? "medium"
-              : aiResponse.priority,
-            helpfulNotes: aiResponse.helpfulNotes,
-            status: "in_progress",
-            relatedSkills: aiResponse.relatedSkills,
-          });
-          skills = aiResponse.relatedSkills;
+          const priority = ["low", "medium", "high"].includes(
+            aiResponse.priority
+          )
+            ? aiResponse.priority
+            : "medium";
+
+          const mergedSkills = Array.from(
+            new Set([
+              ...(ticket.relatedSkills ?? []),
+              ...aiResponse.relatedSkills,
+            ])
+          );
+
+          await db
+            .update(ticketsTable)
+            .set({
+              priority,
+              helpfulNotes: aiResponse.helpfulNotes,
+              status: "in_progress",
+              relatedSkills: mergedSkills,
+              updatedAt: new Date(),
+            })
+            .where(eq(ticketsTable.id, ticket.id));
+
+          skills = mergedSkills;
         }
+
         return skills;
       });
 
       const moderator = await step.run("assign-moderator", async () => {
-        let user = await User.findOne({
-          role: "moderator",
-          skills: {
-            $elemMatch: {
-              $regex: relatedskills.join("|"),
-              $options: "i",
-            },
-          },
-        });
-        if (!user) {
-          user = await User.findOne({
-            role: "admin",
-          });
+        let user:
+          | {
+              id: number;
+              email: string;
+            }
+          | undefined;
+
+        if (relatedSkills.length > 0) {
+          const skillMatchConditions = relatedSkills.map((skill) =>
+            sql`EXISTS (
+              SELECT 1
+              FROM unnest(${usersTable.skills}) AS user_skill
+              WHERE ${ilike(sql`user_skill`, `%${skill}%`)}
+            )`
+          );
+
+          const [moderator] = await db
+            .select({ id: usersTable.id, email: usersTable.email })
+            .from(usersTable)
+            .where(
+              and(
+                eq(usersTable.role, "moderator"),
+                or(...skillMatchConditions)
+              )
+            )
+            .limit(1);
+
+          user = moderator;
         }
-        await Ticket.findByIdAndUpdate(ticket._id, {
-          assignedTo: user?._id || null,
-        });
+
+        if (!user) {
+          const [admin] = await db
+            .select({ id: usersTable.id, email: usersTable.email })
+            .from(usersTable)
+            .where(eq(usersTable.role, "admin"))
+            .limit(1);
+
+          user = admin;
+        }
+
+        await db
+          .update(ticketsTable)
+          .set({
+            assignedTo: user?.id ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(ticketsTable.id, ticket.id));
+
         return user;
       });
 
       await step.run("send-email-notification", async () => {
         if (moderator) {
-          const finalTicket = await Ticket.findById(ticket._id);
+          const [finalTicket] = await db
+            .select({ title: ticketsTable.title })
+            .from(ticketsTable)
+            .where(eq(ticketsTable.id, ticket.id));
+
+          if (!finalTicket) {
+            return;
+          }
+
           await sendEmail(
             moderator.email,
             "Ticket Assigned",
@@ -74,8 +154,9 @@ export const onTicketCreated = inngest.createFunction(
       });
 
       return { success: true };
-    } catch (err) {
-      console.error("❌ Error running the step", err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Error running the step", message);
       return { success: false };
     }
   }

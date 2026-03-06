@@ -59,6 +59,7 @@ export const ticketsTable = pgTable("tickets", {
     priority: ticketPriorityEnum("priority").default("medium").notNull(),
     deadline: timestamp("deadline", { withTimezone: true }),
     helpfulNotes: text("helpful_notes"),
+    isPublic: boolean("is_public").default(true).notNull(),
     relatedSkills: text("related_skills").array().default(sql`'{}'`).notNull(),
     replies: jsonb("replies").$type<TicketReply[]>().default(sql`'[]'::jsonb`).notNull(),
     createdBy: integer("created_by").references(() => usersTable.id),

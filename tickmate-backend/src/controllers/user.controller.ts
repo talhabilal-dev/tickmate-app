@@ -9,12 +9,18 @@ import {
   updateUserSchema,
   usernameAvailabilitySchema,
 } from "../schemas/user.schema.js";
+import { serializeUserResponse } from "../schemas/user-response.schema.js";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 import { inngest } from "../inngest/client.js";
 import type { Request, Response } from "express";
 import { usersTable, magicLinksTable } from "../models/model.js";
 import { and, eq, or } from "drizzle-orm";
+import {
+  sendError,
+  sendSuccess,
+  sendZodValidationError,
+} from "../utils/response.utils.js";
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -24,23 +30,27 @@ export const signup = async (req: Request, res: Response) => {
   const validation = signupSchema.safeParse({ name, email, password, username, skills });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
   try {
 
     const [existingUser] = await db
-      .select({ id: usersTable.id })
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        username: usersTable.username,
+      })
       .from(usersTable)
       .where(or(eq(usersTable.email, email), eq(usersTable.username, username)));
 
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "Email or username already exists",
+      const duplicateField = existingUser.email === email ? "email" : "username";
+      const duplicateMessage =
+        duplicateField === "email" ? "Email already exists" : "Username already exists";
+
+      return sendError(res, 409, {
+        message: duplicateMessage,
+        errors: [{ field: duplicateField, message: duplicateMessage }],
       });
     }
 
@@ -57,17 +67,24 @@ export const signup = async (req: Request, res: Response) => {
       name: usersTable.name,
       username: usersTable.username,
       email: usersTable.email,
-      skills: usersTable.skills
+      role: usersTable.role,
+      skills: usersTable.skills,
+      isActive: usersTable.isActive,
+      loginTime: usersTable.loginTime,
+      createdAt: usersTable.createdAt,
     })
 
-    await inngest.send({
+    const result = await inngest.send({
       name: "user/signup",
       data: { userId: newUser?.id, email: newUser?.email },
     });
 
-    return res
-      .status(201)
-      .json({ success: true, message: "User created successfully", user: newUser });
+    console.log(result)
+
+    return sendSuccess(res, 201, {
+      message: "User created successfully",
+      user: serializeUserResponse(newUser),
+    });
   } catch (error) {
 
     if (error instanceof Error) {
@@ -76,8 +93,7 @@ export const signup = async (req: Request, res: Response) => {
       console.log("Internal Server Error", error)
     }
 
-    return res.status(500).json({
-      success: false,
+    return sendError(res, 500, {
       message: "Internal server error",
     });
 
@@ -91,18 +107,13 @@ export const verify = async (req: Request, res: Response) => {
   const validation = verifySchema.safeParse({ token });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
 
     if (!ENV.JWT_SECRET) {
-      return res.status(500).json({
-        success: false,
+      return sendError(res, 500, {
         message: "JWT_SECRET is not configured",
       });
     }
@@ -117,9 +128,16 @@ export const verify = async (req: Request, res: Response) => {
     const purpose = payload.purpose;
 
     if (!userId || !purpose) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid token payload",
+      });
+    }
+
+    const [isAlreadyVerified] = await db.select().from(usersTable).where(and(eq(usersTable.id, userId), eq(usersTable.isActive, true)));
+
+    if (isAlreadyVerified) {
+      return sendError(res, 400, {
+        message: "Email is already verified",
       });
     }
 
@@ -134,16 +152,14 @@ export const verify = async (req: Request, res: Response) => {
       );
 
     if (!verificationRecords) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid or already used token",
       });
     }
 
 
     if (verificationRecords?.expiresAt < new Date()) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Token has expired",
       });
     }
@@ -151,22 +167,19 @@ export const verify = async (req: Request, res: Response) => {
     await db.update(usersTable).set({ isActive: true }).where(eq(usersTable.id, userId));
     await db.delete(magicLinksTable).where(eq(magicLinksTable.id, verificationRecords.id));
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, 200, {
       message: "Email verified successfully",
     });
 
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Token has expired",
       });
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid token",
       });
     }
@@ -176,8 +189,7 @@ export const verify = async (req: Request, res: Response) => {
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
-      success: false,
+    return sendError(res, 500, {
       message: "Internal server error",
     });
 
@@ -192,11 +204,7 @@ export const login = async (req: Request, res: Response) => {
   const validation = loginSchema.safeParse({ identifier, password });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
@@ -211,25 +219,22 @@ export const login = async (req: Request, res: Response) => {
       );
 
     if (!user) {
-      return res.status(401).json({
+      return sendError(res, 401, {
         message: "Invalid email or password",
-        success: false,
       });
     }
 
     const isPasswordValid = await argon2.verify(user.password, password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({
+      return sendError(res, 401, {
         message: "Invalid email or password",
-        success: false,
       });
     }
 
     if (!user.isActive) {
-      return res.status(401).json({
+      return sendError(res, 401, {
         message: "User is not active",
-        success: false,
       });
     }
 
@@ -285,9 +290,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json({
-      user,
-      success: true,
+    return sendSuccess(res, 200, {
       message: "User logged in successfully",
     });
   } catch (error) {
@@ -296,9 +299,8 @@ export const login = async (req: Request, res: Response) => {
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -307,13 +309,10 @@ export const logout = async (req: Request, res: Response) => {
   try {
 
     if (!req.user?.userId) {
-      return res.status(401).json({
+      return sendError(res, 401, {
         message: "Unauthorized Access",
-        success: false,
       });
     }
-
-    // Clear both tokens
     res.clearCookie("token", {
       httpOnly: true,
       secure: true,
@@ -327,9 +326,8 @@ export const logout = async (req: Request, res: Response) => {
       sameSite: "none",
     });
 
-    return res.status(200).json({
+    return sendSuccess(res, 200, {
       message: "User logged out successfully",
-      success: true,
     });
   } catch (error) {
 
@@ -339,9 +337,8 @@ export const logout = async (req: Request, res: Response) => {
       console.log("Internal Server Error", error)
     }
 
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -349,25 +346,22 @@ export const logout = async (req: Request, res: Response) => {
 export const getUser = async (req: Request, res: Response) => {
   try {
     if (!req.user?.userId) {
-      return res.status(401).json({ message: "Unauthorized Access ", success: false });
+      return sendError(res, 401, { message: "Unauthorized Access" });
     }
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, Number(req.user.userId)));
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Failed to get user", success: false });
+      return sendError(res, 404, { message: "Failed to get user" });
     }
-    return res.status(200).json({ user, success: true });
+    return sendSuccess(res, 200, { user: serializeUserResponse(user) });
   } catch (error) {
     if (error instanceof Error) {
       console.log("Internal Server Error", error.message)
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -378,16 +372,12 @@ export const updateUser = async (req: Request, res: Response) => {
   const validation = updateUserSchema.safeParse({ name, username, email, skills });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
     if (!req.user?.userId) {
-      return res.status(401).json({ message: "Unauthorized Access", success: false });
+      return sendError(res, 401, { message: "Unauthorized Access" });
     }
 
     const [existingUser] = await db
@@ -396,7 +386,7 @@ export const updateUser = async (req: Request, res: Response) => {
       .where(eq(usersTable.id, Number(req.user.userId)));
 
     if (!existingUser) {
-      return res.status(404).json({ message: "Failed to get user", success: false });
+      return sendError(res, 404, { message: "Failed to get user" });
     }
 
     const updateData: Partial<{
@@ -422,9 +412,9 @@ export const updateUser = async (req: Request, res: Response) => {
         .where(eq(usersTable.username, username));
 
       if (usernameInUse && usernameInUse.id !== existingUser.id) {
-        return res.status(409).json({
-          success: false,
+        return sendError(res, 409, {
           message: "Username is already in use",
+          errors: [{ field: "username", message: "Username is already in use" }],
         });
       }
 
@@ -439,9 +429,9 @@ export const updateUser = async (req: Request, res: Response) => {
         .where(eq(usersTable.email, email));
 
       if (emailInUse && emailInUse.id !== existingUser.id) {
-        return res.status(409).json({
-          success: false,
+        return sendError(res, 409, {
           message: "Email is already in use",
+          errors: [{ field: "email", message: "Email is already in use" }],
         });
       }
 
@@ -451,10 +441,9 @@ export const updateUser = async (req: Request, res: Response) => {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, 200, {
         message: "No changes were provided",
-        user: existingUser,
+        user: serializeUserResponse(existingUser),
       });
     }
 
@@ -470,11 +459,12 @@ export const updateUser = async (req: Request, res: Response) => {
         role: usersTable.role,
         skills: usersTable.skills,
         isActive: usersTable.isActive,
+        loginTime: usersTable.loginTime,
+        createdAt: usersTable.createdAt,
       });
 
     if (!updatedUser) {
-      return res.status(500).json({
-        success: false,
+      return sendError(res, 500, {
         message: "Failed to update user",
       });
     }
@@ -486,12 +476,11 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, 200, {
       message: emailChanged
         ? "Profile updated. Please verify your new email address."
         : "Profile updated successfully",
-      user: updatedUser,
+      user: serializeUserResponse(updatedUser),
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -499,9 +488,8 @@ export const updateUser = async (req: Request, res: Response) => {
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -511,35 +499,30 @@ export const changePassword = async (req: Request, res: Response) => {
     const { oldPassword, newPassword } = req.body;
 
     if (!req.user?.userId) {
-      return res.status(401).json({ message: "Unauthorized", success: false });
+      return sendError(res, 401, { message: "Unauthorized" });
     }
 
     if (req.user.role !== "user") {
-      return res.status(403).json({ message: "Forbidden", success: false });
+      return sendError(res, 403, { message: "Forbidden" });
     }
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, Number(req.user.userId)));
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "Failed to get user", success: false });
+      return sendError(res, 404, { message: "Failed to get user" });
     }
 
     const passwordMatch = await argon2.verify(user.password, oldPassword);
 
     if (!passwordMatch) {
-      return res
-        .status(401)
-        .json({ message: "Invalid old password", success: false });
+      return sendError(res, 401, { message: "Invalid old password" });
     }
 
     const hashedPassword = await argon2.hash(newPassword);
     await db.update(usersTable).set({ password: hashedPassword }).where(eq(usersTable.id, Number(req.user.userId)));
 
-    return res.status(200).json({
+    return sendSuccess(res, 200, {
       message: "Password changed successfully",
-      success: true,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -547,9 +530,8 @@ export const changePassword = async (req: Request, res: Response) => {
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -560,11 +542,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
   const validation = forgotPasswordSchema.safeParse({ email });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
@@ -577,8 +555,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, 200, {
       message: "If an account exists for this email, a reset link has been sent.",
     });
   } catch (error) {
@@ -587,9 +564,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -600,17 +576,12 @@ export const resetPassword = async (req: Request, res: Response) => {
   const validation = resetPasswordSchema.safeParse({ token, newPassword });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
     if (!ENV.JWT_SECRET) {
-      return res.status(500).json({
-        success: false,
+      return sendError(res, 500, {
         message: "JWT_SECRET is not configured",
       });
     }
@@ -624,8 +595,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     const purpose = payload.purpose;
 
     if (!userId || purpose !== "password_reset") {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid token payload",
       });
     }
@@ -642,15 +612,13 @@ export const resetPassword = async (req: Request, res: Response) => {
       );
 
     if (!resetRecord) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid or already used token",
       });
     }
 
     if (resetRecord.expiresAt < new Date()) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Token has expired",
       });
     }
@@ -660,21 +628,18 @@ export const resetPassword = async (req: Request, res: Response) => {
     await db.update(usersTable).set({ password: hashedPassword }).where(eq(usersTable.id, userId));
     await db.delete(magicLinksTable).where(eq(magicLinksTable.id, resetRecord.id));
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, 200, {
       message: "Password reset successfully",
     });
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Token has expired",
       });
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, 400, {
         message: "Invalid token",
       });
     }
@@ -685,9 +650,8 @@ export const resetPassword = async (req: Request, res: Response) => {
       console.log("Internal Server Error", error)
     }
 
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };
@@ -697,11 +661,7 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
   const validation = usernameAvailabilitySchema.safeParse({ username });
 
   if (!validation.success) {
-    const errors = validation.error?.issues.map((issue) => ({
-      field: issue.path.join("."),
-      message: issue.message,
-    }));
-    return res.status(400).json({ errors, success: false });
+    return sendZodValidationError(res, validation.error.issues);
   }
 
   try {
@@ -710,8 +670,7 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
       .from(usersTable)
       .where(eq(usersTable.username, username));
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, 200, {
       available: !existingUser,
       message: existingUser ? "Username is already taken" : "Username is available",
     });
@@ -721,9 +680,8 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
     } else {
       console.log("Internal Server Error", error)
     }
-    return res.status(500).json({
+    return sendError(res, 500, {
       message: "Internal server error",
-      success: false,
     });
   }
 };

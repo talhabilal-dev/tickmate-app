@@ -1,0 +1,100 @@
+### TickMate backend ticket route tests
+### Works with VS Code REST Client extension (.http files)
+### Install: Huachao Mao -> REST Client
+
+### Update this base URL to match how ticket routes are mounted in src/index.ts
+### Example: http://localhost:3000/api/tickets
+@baseUrl = http://localhost:3000/api/tickets
+
+### Use a valid JWT from login
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMiIsInJvbGUiOiJ1c2VyIiwiaXNBY3RpdmUiOnRydWUsImlhdCI6MTc3Mjc4MzUyOCwiZXhwIjoxNzcyODY5OTI4fQ.bHQMqymo9OITPvoHav6gEeZkTvxelU0yLdoSIm3xl3s
+
+### IDs used by requests below
+@ticketId = 1
+@assignedUserId = 2
+
+### -----------------------------
+### 1) Create ticket (protected)
+### -----------------------------
+POST {{baseUrl}}/
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "title": "Login fails after password reset",
+  "description": "User cannot login after resetting password. Gets invalid credentials every time.",
+  "category": "Authentication",
+  "priority": "high",
+  "deadline": "2026-03-10T12:00:00.000Z",
+  "relatedSkills": ["nodejs", "jwt", "postgres"],
+  "helpfulNotes": "Check reset-token invalidation and password hashing flow.",
+  "isPublic": true
+}
+
+### -----------------------------
+### 2) Get my tickets (protected)
+### -----------------------------
+GET {{baseUrl}}/
+Authorization: Bearer {{authToken}}
+
+### -----------------------------
+### 3) Toggle ticket status to completed (protected)
+### -----------------------------
+PUT {{baseUrl}}/status/{{ticketId}}
+Authorization: Bearer {{authToken}}
+
+### -----------------------------
+### 4) Get assigned tickets (protected)
+### -----------------------------
+GET {{baseUrl}}/get-assigned
+Authorization: Bearer {{authToken}}
+
+### -----------------------------
+### 5) Add ticket reply (moderator/admin + assigned user)
+### -----------------------------
+PUT {{baseUrl}}/ticket-reply
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "ticketId": {{ticketId}},
+  "message": "Investigating this now. Please share your latest error logs."
+}
+
+### -----------------------------
+### 6) Get ticket summary for current user (protected)
+### -----------------------------
+GET {{baseUrl}}/tickets-summary
+Authorization: Bearer {{authToken}}
+
+### -----------------------------
+### 7) Delete ticket (owner/admin)
+### -----------------------------
+DELETE {{baseUrl}}/delete-ticket
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "ticketId": {{ticketId}}
+}
+
+### -----------------------------
+### 8) Edit ticket (owner/admin)
+### -----------------------------
+PUT {{baseUrl}}/edit-ticket
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "ticketId": {{ticketId}},
+  "title": "Login still fails after password reset",
+  "description": "Updated details: issue happens only on mobile app.",
+  "category": "Authentication",
+  "priority": "medium",
+  "status": "in_progress",
+  "assignedTo": {{assignedUserId}},
+  "deadline": "2026-03-12T09:30:00.000Z",
+  "helpfulNotes": "Re-check auth cookie domain and token parsing.",
+  "relatedSkills": ["nodejs", "express", "mobile-auth"],
+  "isPublic": false
+}

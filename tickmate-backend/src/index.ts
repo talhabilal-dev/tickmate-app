@@ -7,6 +7,8 @@ import { inngest } from "./inngest/client.js";
 import { onUserSignup } from "./inngest/functions/on-signup.js";
 import { onUserForgotPassword } from "./inngest/functions/on-forgot-password.js";
 import { serve } from "inngest/express";
+import ticketRoutes from "./routes/ticket.routes.js";
+import { onTicketCreated } from "./inngest/functions/on-ticket-create.js";
 
 
 const app = express();
@@ -20,11 +22,13 @@ app.use(
   "/api/inngest",
   serve({
     client: inngest,
-    functions: [onUserSignup, onUserForgotPassword],
+    functions: [onUserSignup, onUserForgotPassword ,onTicketCreated],
   })
 );
 app.use("/api/auth", userRoutes
 );
+
+app.use("/api/tickets", ticketRoutes);
 
 app.get("/", (_req: Request, res: Response) => res.send("Hello World!"));
 

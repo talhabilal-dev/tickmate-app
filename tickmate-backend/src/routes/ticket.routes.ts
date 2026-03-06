@@ -1,5 +1,5 @@
-import express from "express";
-import { verifyAuthToken } from "../middlewares/auth.middleware.ts";
+import express, { Router } from "express";
+import { verifyAuthToken } from "../middlewares/auth.middleware.js";
 import {
   assignedTickets,
   createTicket,
@@ -9,9 +9,9 @@ import {
   getUserTicketSummary,
   ticketReply,
   toggleTicketStatus,
-} from "../controllers/ticket.controller.ts";
+} from "../controllers/ticket.controller.js";
 
-const router = express.Router();
+const router : Router = express.Router();
 
 router.get("/", verifyAuthToken, getTickets);
 router.post("/", verifyAuthToken, createTicket);

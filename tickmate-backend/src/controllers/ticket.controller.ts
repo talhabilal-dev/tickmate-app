@@ -1,216 +1,416 @@
-import { inngest } from "../inngest/client.ts";
-import Ticket from "../models/ticket.model.js";
-import User from "../models/user.model.js";
+import type { Request, Response } from "express";
+import { inngest } from "../inngest/client.js";
+import { usersTable, ticketsTable } from "../models/model.js";
+import db from "../config/db.config.js";
+import { and, desc, eq, gte, lt } from "drizzle-orm";
+import {
+  sendError,
+  sendSuccess,
+  sendZodValidationError,
+} from "../utils/response.utils.js";
+import {
+  createTicketSchema,
+  deleteTicketSchema,
+  editTicketSchema,
+  ticketReplySchema,
+} from "../schemas/ticket.schema.js";
 
-export const createTicket = async (req, res) => {
+export const createTicket = async (req: Request, res: Response) => {
   try {
-    if (!req.user.userId) {
-      return res.status(401).json({ message: "Unauthorized", success: false });
+    if (!req.user || !req.user.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
     }
 
-    const user = await User.findById(req.user.userId);
+    const [user] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.id, Number(req.user.userId)));
+
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User not found", success: false });
-    }
-
-    const { title, description, category, deadline } = req.body;
-
-    if (!title || !description || !category) {
-      return res.status(400).json({
-        message: "Title and description are required",
-        success: false,
+      return sendError(res, 401, {
+        message: "Unauthorized Access",
       });
     }
-    const newTicket = await Ticket.create({
+
+    const validation = createTicketSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
+    const {
       title,
       description,
       category,
-      createdBy: req.user.userId,
       deadline,
-    });
+      priority,
+      relatedSkills,
+      helpfulNotes,
+      isPublic,
+    } = validation.data;
+
+    const [newTicket] = await db
+      .insert(ticketsTable)
+      .values({
+        title,
+        description,
+        category,
+        createdBy: Number(req.user.userId),
+        deadline,
+        priority,
+        relatedSkills,
+        helpfulNotes,
+        isPublic,
+      })
+      .returning();
+
+    if (!newTicket) {
+      return sendError(res, 500, { message: "Failed to create ticket" });
+    }
 
     await inngest.send({
       name: "ticket/created",
       data: {
-        ticketId: newTicket._id.toString(),
+        ticketId: newTicket.id.toString(),
         title,
         description,
-        createdBy: req.user.userId.toString(),
+        createdBy: req.user.userId,
       },
     });
-    return res.status(201).json({
+
+    return sendSuccess(res, 201, {
       message: "Ticket created and processing started",
-      success: true,
       ticket: newTicket,
     });
   } catch (error) {
-    console.error("Error creating ticket", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", success: false });
+    if (error instanceof Error) {
+      console.error("Error creating ticket", error.message);
+    } else {
+      console.error("Error creating ticket", error);
+    }
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const getTickets = async (req, res) => {
+export const getTickets = async (req: Request, res: Response) => {
   try {
-    const user = req.user;
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
 
-    // Regular user: get only their created tickets
-    const tickets = await Ticket.find({ createdBy: user.userId })
-      .select(
-        "title description status createdAt assignedTo helpfulNotes relatedSkills updatedAt priority deadline category createdBy updatedAt"
-      )
-      .populate("assignedTo", "name")
-      .populate("createdBy", "name")
-      .sort({ createdAt: -1 })
-      .lean();
+    const userId = Number(req.user.userId);
 
-    return res.status(200).json({
+    if (Number.isNaN(userId)) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
+    const tickets = await db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.createdBy, userId))
+      .orderBy(desc(ticketsTable.createdAt));
+
+    return sendSuccess(res, 200, {
       message: "Tickets fetched successfully",
-      success: true,
       tickets,
     });
   } catch (error) {
-    console.error("Error fetching tickets", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", success: false });
+    if (error instanceof Error) {
+      console.error("Error fetching tickets", error.message);
+    } else {
+      console.error("Error fetching tickets", error);
+    }
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const toggleTicketStatus = async (req, res) => {
+export const toggleTicketStatus = async (req: Request, res: Response) => {
   try {
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
     const { id } = req.params;
-    const updatedTicket = await Ticket.findByIdAndUpdate(
-      id,
-      { status: "closed" },
-      { new: true }
-    );
-    return res.status(200).json({
+
+    const ticketId = Number(id);
+
+    if (!id || Number.isNaN(ticketId)) {
+      return sendError(res, 400, {
+        message: "Valid ticket id is required",
+        errors: [{ field: "id", message: "Valid ticket id is required" }],
+      });
+    }
+
+    const userId = Number(req.user.userId);
+
+    const [ticket] = await db
+      .select({
+        id: ticketsTable.id,
+        createdBy: ticketsTable.createdBy,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.id, ticketId));
+
+    if (!ticket) {
+      return sendError(res, 404, {
+        message: "Ticket not found",
+      });
+    }
+
+    const canManage = req.user.role === "admin" || ticket.createdBy === userId;
+
+    if (!canManage) {
+      return sendError(res, 403, {
+        message: "You are not allowed to update this ticket",
+      });
+    }
+
+    const [updatedTicket] = await db
+      .update(ticketsTable)
+      .set({
+        status: "completed",
+        updatedAt: new Date(),
+      })
+      .where(eq(ticketsTable.id, ticketId))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      });
+
+    if (!updatedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to update ticket status",
+      });
+    }
+
+    return sendSuccess(res, 200, {
       message: "Ticket status updated",
-      success: true,
       ticket: updatedTicket,
     });
   } catch (error) {
-    console.error("Error updating ticket status", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", success: false });
+    if (error instanceof Error) {
+      console.error("Error updating ticket status", error.message);
+    } else {
+      console.error("Error updating ticket status", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const assignedTickets = async (req, res) => {
-  const user = req.user;
-
+export const assignedTickets = async (req: Request, res: Response) => {
   try {
-    const tickets = await Ticket.find({ assignedTo: user.userId })
-      .select(
-        "title description status createdAt assignedTo helpfulNotes updatedAt relatedSkills priority deadline category createdBy updatedAt"
-      )
-      .populate("assignedTo", "name")
-      .populate("createdBy", "name")
-      .sort({ createdAt: -1 })
-      .lean();
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
 
-    return res.status(200).json({
+    const userId = Number(req.user.userId);
+
+    if (Number.isNaN(userId)) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
+    const tickets = await db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.assignedTo, userId))
+      .orderBy(desc(ticketsTable.createdAt));
+
+    return sendSuccess(res, 200, {
       message: "Tickets fetched successfully",
-      success: true,
       tickets,
     });
   } catch (error) {
-    console.error("Error fetching assigned tickets:", error.message);
-    return res.status(500).json({
-      error: error.message,
-      message: "Internal Server Error",
-      success: false,
-    });
+    if (error instanceof Error) {
+      console.error("Error fetching assigned tickets:", error.message);
+    } else {
+      console.error("Error fetching assigned tickets:", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const ticketReply = async (req, res) => {
+export const ticketReply = async (req: Request, res: Response) => {
   try {
-    const { message, ticketId } = req.body;
-
-    if (!message) {
-      return res.status(400).json({
-        message: "Message is required",
-        success: false,
-      });
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
     }
+
+    const validation = ticketReplySchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
+    const { message, ticketId } = validation.data;
 
     if (req.user.role !== "moderator" && req.user.role !== "admin") {
-      return res.status(403).json({
+      return sendError(res, 403, {
         message: "Forbidden: Moderators and Admins only",
-        success: false,
       });
     }
 
-    const ticket = await Ticket.findById(ticketId);
+    const [ticket] = await db
+      .select({
+        id: ticketsTable.id,
+        status: ticketsTable.status,
+        assignedTo: ticketsTable.assignedTo,
+        replies: ticketsTable.replies,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.id, ticketId));
 
     if (!ticket) {
-      return res.status(404).json({
+      return sendError(res, 404, {
         message: "Ticket not found",
-        success: false,
       });
     }
 
-    if (ticket.status === "closed") {
-      return res.status(400).json({
+    if (ticket.status === "completed") {
+      return sendError(res, 400, {
         message: "Ticket is already closed",
-        success: false,
       });
     }
 
-    if (ticket.assignedTo.toString() !== req.user.userId) {
-      return res.status(403).json({
+    if (!ticket.assignedTo || ticket.assignedTo !== Number(req.user.userId)) {
+      return sendError(res, 403, {
         message: "You are not allowed to reply to this ticket",
-        success: false,
       });
     }
-    ticket.replies.push({
+
+    const updatedReplies = [...ticket.replies, {
       message,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       createdBy: req.user.userId,
-    });
-    await ticket.save();
-    return res.status(200).json({
+    }];
+
+    const [updatedTicket] = await db
+      .update(ticketsTable)
+      .set({
+        replies: updatedReplies,
+        updatedAt: new Date(),
+      })
+      .where(eq(ticketsTable.id, ticketId))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      });
+
+    if (!updatedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to update ticket reply",
+      });
+    }
+
+    return sendSuccess(res, 200, {
       message: "Ticket reply updated",
-      success: true,
-      ticket,
+      ticket: updatedTicket,
     });
   } catch (error) {
-    console.error("Error replying to ticket:", error.message);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false,
-    });
+    if (error instanceof Error) {
+      console.error("Error replying to ticket:", error.message);
+    } else {
+      console.error("Error replying to ticket:", error);
+    }
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const getUserTicketSummary = async (req, res) => {
+export const getUserTicketSummary = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
+    const userIdRaw = req.user?.userId;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
+    if (!userIdRaw) {
+      return sendError(res, 401, {
         message: "Unauthorized",
       });
     }
 
-    // 🔹 Fetch all user's tickets for display
-    const tickets = await Ticket.find({ createdBy: userId })
-      .select("title assignedTo priority createdAt status relatedSkills")
-      .populate("assignedTo", "name")
-      .sort({ createdAt: -1 })
-      .lean();
+    const userId = Number(userIdRaw);
+
+    if (Number.isNaN(userId)) {
+      return sendError(res, 401, {
+        message: "Unauthorized",
+      });
+    }
+
+    const tickets = await db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        assignedTo: ticketsTable.assignedTo,
+        priority: ticketsTable.priority,
+        createdAt: ticketsTable.createdAt,
+        status: ticketsTable.status,
+        relatedSkills: ticketsTable.relatedSkills,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.createdBy, userId))
+      .orderBy(desc(ticketsTable.createdAt));
 
     // 🔹 Compute current summary
     const totalTickets = tickets.length;
     const inProgress = tickets.filter((t) => t.status === "in_progress").length;
-    const completed = tickets.filter((t) => t.status === "closed").length;
+    const completed = tickets.filter((t) => t.status === "completed").length;
 
     // 🔹 Define time windows (last 7 days vs previous 7 days)
     const now = new Date();
@@ -222,22 +422,27 @@ export const getUserTicketSummary = async (req, res) => {
     const endOfPrevious = new Date();
     endOfPrevious.setDate(now.getDate() - 7);
 
-    // 🔹 Fetch previous period tickets for comparison
-    const previousTickets = await Ticket.find({
-      createdBy: userId,
-      createdAt: { $gte: startOfPrevious, $lt: endOfPrevious },
-    })
-      .select("status")
-      .lean();
+    const previousTickets = await db
+      .select({
+        status: ticketsTable.status,
+      })
+      .from(ticketsTable)
+      .where(
+        and(
+          eq(ticketsTable.createdBy, userId),
+          gte(ticketsTable.createdAt, startOfPrevious),
+          lt(ticketsTable.createdAt, endOfPrevious)
+        )
+      );
 
     const previousSummary = {
       totalTickets: previousTickets.length,
       inProgress: previousTickets.filter((t) => t.status === "in_progress")
         .length,
-      completed: previousTickets.filter((t) => t.status === "closed").length,
+      completed: previousTickets.filter((t) => t.status === "completed").length,
     };
-    return res.status(200).json({
-      success: true,
+
+    return sendSuccess(res, 200, {
       message: "User ticket summary fetched successfully",
       summary: {
         totalTickets,
@@ -248,63 +453,113 @@ export const getUserTicketSummary = async (req, res) => {
       tickets,
     });
   } catch (error) {
-    console.error("Error fetching user ticket summary:", error.message);
-    return res.status(500).json({
-      success: false,
+    if (error instanceof Error) {
+      console.error("Error fetching user ticket summary:", error.message);
+    } else {
+      console.error("Error fetching user ticket summary:", error);
+    }
+
+    return sendError(res, 500, {
       message: "Internal Server Error",
     });
   }
 };
 
-export const deleteTicket = async (req, res) => {
+export const deleteTicket = async (req: Request, res: Response) => {
   try {
-    const { ticketId } = req.body;
-
-    if (!ticketId) {
-      return res.status(400).json({
-        message: "Ticket ID is required",
-        success: false,
-      });
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
     }
 
-    const ticket = await Ticket.findById(ticketId);
+    const validation = deleteTicketSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
+    const { ticketId } = validation.data;
+
+    const [ticket] = await db
+      .select({
+        id: ticketsTable.id,
+        createdBy: ticketsTable.createdBy,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.id, ticketId));
 
     if (!ticket) {
-      return res.status(404).json({
+      return sendError(res, 404, {
         message: "Ticket not found",
-        success: false,
       });
     }
+
+    const userId = Number(req.user.userId);
 
     if (
-      ticket.createdBy.toString() !== req.user.userId &&
+      ticket.createdBy !== userId &&
       req.user.role !== "admin"
     ) {
-      return res.status(403).json({
+      return sendError(res, 403, {
         message: "You are not allowed to delete this ticket",
-        success: false,
       });
     }
 
-    const deletedTicket = await Ticket.findByIdAndDelete(ticketId);
+    const [deletedTicket] = await db
+      .delete(ticketsTable)
+      .where(eq(ticketsTable.id, ticketId))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      });
 
-    return res.status(200).json({
+    if (!deletedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to delete ticket",
+      });
+    }
+
+    return sendSuccess(res, 200, {
       message: "Ticket deleted successfully",
-      success: true,
       ticket: deletedTicket,
     });
   } catch (error) {
-    console.error("Error deleting ticket", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", success: false });
+    if (error instanceof Error) {
+      console.error("Error deleting ticket", error.message);
+    } else {
+      console.error("Error deleting ticket", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };
 
-export const editTicket = async (req, res) => {
+export const editTicket = async (req: Request, res: Response) => {
   try {
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
+    const validation = editTicketSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
     const {
-      _id,
+      ticketId,
       title,
       description,
       category,
@@ -314,92 +569,120 @@ export const editTicket = async (req, res) => {
       assignedTo,
       helpfulNotes,
       relatedSkills,
-    } = req.body;
+      isPublic,
+    } = validation.data;
 
-    const ticketId = await _id.toString();
-
-    if (!req.user.userId) {
-      return res.status(401).json({ message: "Unauthorized", success: false });
-    }
-
-    if (!ticketId) {
-      return res.status(400).json({
-        message: "Ticket ID is required",
-        success: false,
-      });
-    }
-
-    const ticket = await Ticket.findById(ticketId);
+    const [ticket] = await db
+      .select({
+        id: ticketsTable.id,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+      })
+      .from(ticketsTable)
+      .where(eq(ticketsTable.id, ticketId));
 
     if (!ticket) {
-      return res.status(404).json({
+      return sendError(res, 404, {
         message: "Ticket not found",
-        success: false,
       });
     }
+
+    const userId = Number(req.user.userId);
 
     if (
-      ticket.createdBy.toString() !== req.user.userId &&
+      ticket.createdBy !== userId &&
       req.user.role !== "admin"
     ) {
-      return res.status(403).json({
+      return sendError(res, 403, {
         message: "You are not allowed to edit this ticket",
-        success: false,
       });
     }
 
-    if (title) ticket.title = title;
-    if (description) ticket.description = description;
-    if (category) ticket.category = category;
-    if (deadline) ticket.deadline = deadline;
-    if (status) ticket.status = status;
-    if (priority) ticket.priority = priority;
-    if (helpfulNotes) ticket.helpfulNotes = helpfulNotes;
+    if (typeof assignedTo !== "undefined" && assignedTo !== null) {
+      const [assignedUser] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.id, assignedTo));
 
-    ticket.updatedAt = new Date();
-
-    if (assignedTo && assignedTo !== ticket.assignedTo?.toString()) {
-      const user = await User.findById(assignedTo);
-      if (!user) {
-        return res.status(404).json({
+      if (!assignedUser) {
+        return sendError(res, 404, {
           message: "Assigned user not found",
-          success: false,
-        });
-      }
-      ticket.assignedTo = user._id;
-    }
-
-    if (relatedSkills) {
-      if (Array.isArray(relatedSkills)) {
-        ticket.relatedSkills = relatedSkills.map((skill) => skill.trim());
-      } else if (typeof relatedSkills === "string") {
-        ticket.relatedSkills = relatedSkills.split(",").map((s) => s.trim());
-      } else {
-        return res.status(400).json({
-          message: "Related skills must be an array or comma-separated string",
-          success: false,
         });
       }
     }
 
-    await ticket.save();
-    const updatedTicket = await Ticket.findById(ticketId)
-      .populate("assignedTo", "name email")
-      .populate("createdBy", "name email")
-      .select(
-        "title description status createdAt assignedTo helpfulNotes relatedSkills updatedAt priority deadline category createdBy updatedAt"
-      )
-      .lean();
+    const updateData: Partial<{
+      title: string;
+      description: string;
+      category: string;
+      deadline: Date | null;
+      status: "pending" | "in_progress" | "completed";
+      priority: "low" | "medium" | "high";
+      assignedTo: number | null;
+      helpfulNotes: string | null;
+      relatedSkills: string[];
+      isPublic: boolean;
+      updatedAt: Date;
+    }> = {};
 
-    return res.status(200).json({
+    if (typeof title !== "undefined") updateData.title = title;
+    if (typeof description !== "undefined") updateData.description = description;
+    if (typeof category !== "undefined") updateData.category = category;
+    if (typeof deadline !== "undefined") updateData.deadline = deadline;
+    if (typeof status !== "undefined") updateData.status = status;
+    if (typeof priority !== "undefined") updateData.priority = priority;
+    if (typeof assignedTo !== "undefined") updateData.assignedTo = assignedTo;
+    if (typeof helpfulNotes !== "undefined") updateData.helpfulNotes = helpfulNotes;
+    if (typeof relatedSkills !== "undefined") updateData.relatedSkills = relatedSkills;
+    if (typeof isPublic !== "undefined") updateData.isPublic = isPublic;
+
+    if (Object.keys(updateData).length === 0) {
+      return sendSuccess(res, 200, {
+        message: "No changes were provided",
+      });
+    }
+
+    updateData.updatedAt = new Date();
+
+    const [updatedTicket] = await db
+      .update(ticketsTable)
+      .set(updateData)
+      .where(eq(ticketsTable.id, ticketId))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      });
+
+    if (!updatedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to update ticket",
+      });
+    }
+
+    return sendSuccess(res, 200, {
       message: "Ticket updated successfully",
-      success: true,
       ticket: updatedTicket,
     });
   } catch (error) {
-    console.error("Error editing ticket", error.message);
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", success: false });
+    if (error instanceof Error) {
+      console.error("Error editing ticket", error.message);
+    } else {
+      console.error("Error editing ticket", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
   }
 };

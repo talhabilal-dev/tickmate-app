@@ -17,6 +17,8 @@
   "license": "ISC",
   "packageManager": "pnpm@10.30.3",
   "dependencies": {
+    "@langchain/core": "^1.1.31",
+    "@langchain/google": "^0.1.5",
     "@types/jsonwebtoken": "^9.0.10",
     "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",
