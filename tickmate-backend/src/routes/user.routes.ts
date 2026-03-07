@@ -22,7 +22,7 @@ router.post("/login", login);
 router.post("/logout", verifyAuthToken, logout);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
-router.get("/check-username", checkUsernameAvailability);
+router.get("/check-username/:username", checkUsernameAvailability);
 // router.put("/update-skills", verifyAuthToken, updateSkills);
 router.patch("/profile", verifyAuthToken, updateUser);
 router.put("/update-password", verifyAuthToken, changePassword);

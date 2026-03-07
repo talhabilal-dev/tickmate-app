@@ -15,6 +15,36 @@ import adminRoutes from "./routes/admin.routes.js";
 const app = express();
 app.set("trust proxy", 1);
 
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+]);
+
+if (ENV.APP_URL) {
+  allowedOrigins.add(ENV.APP_URL);
+}
+
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin;
+
+  if (requestOrigin && allowedOrigins.has(requestOrigin)) {
+    res.header("Access-Control-Allow-Origin", requestOrigin);
+    res.header("Vary", "Origin");
+  }
+
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

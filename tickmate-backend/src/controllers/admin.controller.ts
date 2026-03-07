@@ -13,6 +13,10 @@ import { adminCreateTicketSchema } from "../schemas/ticket.schema.js";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
+import {
+  getAuthCookieOptions,
+  getClearAuthCookieOptions,
+} from "../utils/cookie.utils.js";
 
 
 export const adminLogin = async (req: Request, res: Response) => {
@@ -71,13 +75,7 @@ export const adminLogin = async (req: Request, res: Response) => {
       .set({ loginTime: new Date() })
       .where(eq(usersTable.id, admin.id));
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ENV.COOKIE_DOMAIN,
-      maxAge: 12 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, getAuthCookieOptions(12 * 60 * 60 * 1000));
 
     return sendSuccess(res, 200, {
       message: "Admin logged in successfully",
@@ -104,12 +102,7 @@ export const adminLogout = async (req: Request, res: Response) => {
       });
     }
 
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      domain: ENV.NODE_ENV === "development" ? undefined : ENV.COOKIE_DOMAIN,
-      sameSite: "none",
-    });
+    res.clearCookie("token", getClearAuthCookieOptions());
 
     return sendSuccess(res, 200, {
       message: "Admin logged out successfully",

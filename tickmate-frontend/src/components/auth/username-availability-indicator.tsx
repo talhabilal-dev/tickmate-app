@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useDebounce } from 'usehooks-ts'
+import { useDebounceValue } from 'usehooks-ts'
 import { authApi } from '@/lib/api'
 import { Check, X, Loader2 } from 'lucide-react'
 
@@ -15,7 +15,7 @@ export default function UsernameAvailabilityIndicator({
   username,
 }: UsernameAvailabilityIndicatorProps) {
   const [status, setStatus] = useState<AvailabilityStatus>('idle')
-  const debouncedUsername = useDebounce(username, 300)
+  const [debouncedUsername] = useDebounceValue(username, 300)
 
   useEffect(() => {
     if (!debouncedUsername || debouncedUsername.length < 3) {
@@ -27,6 +27,7 @@ export default function UsernameAvailabilityIndicator({
       try {
         setStatus('checking')
         const response = await authApi.checkUsernameAvailability(debouncedUsername)
+        console.log(response)
         setStatus(response.available ? 'available' : 'taken')
       } catch (error) {
         setStatus('error')

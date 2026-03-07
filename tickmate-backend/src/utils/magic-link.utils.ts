@@ -20,7 +20,7 @@ type GenerateMagicLinkResult = {
     expiresAt: Date;
 };
 
-const MAGIC_LINK_PATH = "/auth/magic-link";
+const MAGIC_LINK_PATH = "/verify-email";
 
 export const generateMagicLink = async ({
     userId,

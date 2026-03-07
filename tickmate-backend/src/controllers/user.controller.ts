@@ -21,6 +21,10 @@ import {
   sendSuccess,
   sendZodValidationError,
 } from "../utils/response.utils.js";
+import {
+  getAuthCookieOptions,
+  getClearAuthCookieOptions,
+} from "../utils/cookie.utils.js";
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -234,7 +238,7 @@ export const login = async (req: Request, res: Response) => {
 
     if (!user.isActive) {
       return sendError(res, 401, {
-        message: "User is not active",
+        message: "User account is Not verified. Please check your email for verification instructions.",
       });
     }
 
@@ -255,13 +259,7 @@ export const login = async (req: Request, res: Response) => {
 
     await db.update(usersTable).set({ loginTime: new Date() }).where(eq(usersTable.id, user.id));
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ENV.COOKIE_DOMAIN,
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, getAuthCookieOptions(24 * 60 * 60 * 1000));
 
     return sendSuccess(res, 200, {
       message: "User logged in successfully",
@@ -286,12 +284,7 @@ export const logout = async (req: Request, res: Response) => {
         message: "Unauthorized Access",
       });
     }
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      domain: ENV.NODE_ENV === "development" ? undefined : ENV.COOKIE_DOMAIN,
-      sameSite: "none",
-    });
+    res.clearCookie("token", getClearAuthCookieOptions());
     return sendSuccess(res, 200, {
       message: "User logged out successfully",
     });
@@ -623,7 +616,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 };
 
 export const checkUsernameAvailability = async (req: Request, res: Response) => {
-  const username = String(req.query.username ?? "");
+
+  const { username } = req.params as { username: string };
+
+  console.log(username)
+
   const validation = usernameAvailabilitySchema.safeParse({ username });
 
   if (!validation.success) {
@@ -631,13 +628,14 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
   }
 
   try {
-    const [existingUser] = await db
+    const existingUser = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(eq(usersTable.username, username));
+      .where(eq(usersTable.username, username))
+      .limit(1);
 
     return sendSuccess(res, 200, {
-      available: !existingUser,
+      available: existingUser.length === 0,
       message: existingUser ? "Username is already taken" : "Username is available",
     });
   } catch (error) {
@@ -647,6 +645,7 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
       console.log("Internal Server Error", error)
     }
     return sendError(res, 500, {
+
       message: "Internal server error",
     });
   }

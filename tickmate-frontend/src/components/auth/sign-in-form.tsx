@@ -10,11 +10,16 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { signInSchema, type SignInData } from '@/lib/schemas'
-import { authApi } from '@/lib/api'
+import { adminApi, authApi } from '@/lib/api'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 
-export default function SignInForm() {
+type SignInFormProps = {
+  redirectPath?: string
+  isAdmin?: boolean
+}
+
+export default function SignInForm({ redirectPath = '/dashboard', isAdmin = false }: SignInFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -31,12 +36,16 @@ export default function SignInForm() {
   const onSubmit = async (data: SignInData) => {
     try {
       setIsLoading(true)
-      await authApi.signIn(data)
+      if (isAdmin) {
+        await adminApi.login(data)
+      } else {
+        await authApi.signIn(data)
+      }
       toast({
         title: 'Success',
-        description: 'Logged in successfully',
+        description: isAdmin ? 'Admin logged in successfully' : 'Logged in successfully',
       })
-      router.push('/dashboard')
+      router.push(redirectPath)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -54,10 +63,14 @@ export default function SignInForm() {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Sign In
+            {isAdmin ? 'Admin Sign In' : 'Sign In'}
           </CardTitle>
         </div>
-        <CardDescription>Enter your email or username and password</CardDescription>
+        <CardDescription>
+          {isAdmin
+            ? 'Enter your admin email and password'
+            : 'Enter your email or username and password'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -66,7 +79,7 @@ export default function SignInForm() {
             <Label htmlFor="identifier">Email or Username</Label>
             <Input
               id="identifier"
-              placeholder="john@example.com or johndoe"
+              placeholder={isAdmin ? 'admin@example.com' : 'john@example.com or johndoe'}
               {...register('identifier')}
               disabled={isLoading}
               aria-describedby={errors.identifier ? 'identifier-error' : undefined}
@@ -117,16 +130,25 @@ export default function SignInForm() {
             className="w-full ai-button font-semibold text-base"
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Signing in...' : isAdmin ? 'Sign In as Admin' : 'Sign In'}
           </Button>
 
           {/* Sign Up Link */}
-          <p className="text-center text-sm text-muted-foreground">
-            Don{"'"}t have an account?{' '}
-            <Link href="/auth/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
+          {!isAdmin ? (
+            <p className="text-center text-sm text-muted-foreground">
+              Don{"'"}t have an account?{' '}
+              <Link href="/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">
+              Not an admin?{' '}
+              <Link href="/signin" className="text-primary hover:underline">
+                User sign in
+              </Link>
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

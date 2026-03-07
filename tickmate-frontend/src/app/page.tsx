@@ -23,10 +23,10 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Button asChild size="lg" className="ai-button font-semibold">
-            <Link href="/auth/signin">Sign In</Link>
+            <Link href="/signin">Sign In</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="border-primary/30 hover:bg-primary/5">
-            <Link href="/auth/signup">Sign Up</Link>
+            <Link href="/signup">Sign Up</Link>
           </Button>
         </div>
       </div>
