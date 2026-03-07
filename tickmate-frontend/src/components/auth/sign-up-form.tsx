@@ -51,7 +51,7 @@ export default function SignUpForm() {
         description: 'Account created! Check your email to verify your account.',
       })
       reset()
-      router.push('/signin')
+      router.push('/auth/signin')
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -258,7 +258,7 @@ export default function SignUpForm() {
           {/* Sign In Link */}
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/signin" className="text-primary hover:underline">
+            <Link href="/auth/signin" className="text-primary hover:underline">
               Sign in
             </Link>
           </p>

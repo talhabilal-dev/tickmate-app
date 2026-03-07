@@ -1,4 +1,7 @@
+'use client'
+
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import Link from 'next/link'
 
 export default function Home() {
@@ -7,6 +10,11 @@ export default function Home() {
       {/* Animated gradient orbs */}
       <div className="absolute top-20 right-20 w-80 h-80 bg-gradient-ai opacity-15 blur-3xl rounded-full animate-pulse"></div>
       <div className="absolute bottom-20 left-20 w-80 h-80 bg-gradient-ai-reverse opacity-15 blur-3xl rounded-full animate-pulse animation-delay-2000"></div>
+      
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       
       <div className="text-center max-w-2xl relative z-10">
         <div className="mb-6 flex justify-center">
@@ -23,10 +31,10 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Button asChild size="lg" className="ai-button font-semibold">
-            <Link href="/signin">Sign In</Link>
+            <Link href="/auth/signin">Sign In</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="border-primary/30 hover:bg-primary/5">
-            <Link href="/signup">Sign Up</Link>
+            <Link href="/auth/signup">Sign Up</Link>
           </Button>
         </div>
       </div>

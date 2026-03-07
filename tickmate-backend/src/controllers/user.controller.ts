@@ -105,6 +105,41 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+
+  const { email } = req.body;
+
+  const validation = forgotPasswordSchema.safeParse({ email });
+
+  if (!validation.success) {
+    return sendZodValidationError(res, validation.error.issues);
+  }
+
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+
+    if (user && !user.isActive) {
+      await inngest.send({
+        name: "user/signup",
+        data: { userId: user.id, email: user.email },
+      });
+    }
+
+    return sendSuccess(res, 200, {
+      message: "If an account exists for this email, a verification link has been sent.",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Internal Server Error", error.message)
+    } else {
+      console.log("Internal Server Error", error)
+    }
+    return sendError(res, 500, {
+      message: "Internal server error",
+    });
+  }
+}
+
 export const verify = async (req: Request, res: Response) => {
 
   const { token } = req.body;
@@ -380,23 +415,11 @@ export const updateUser = async (req: Request, res: Response) => {
       updateData.username = username;
     }
 
-    let emailChanged = false;
     if (typeof email !== "undefined" && email !== existingUser.email) {
-      const [emailInUse] = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(eq(usersTable.email, email));
-
-      if (emailInUse && emailInUse.id !== existingUser.id) {
-        return sendError(res, 409, {
-          message: "Email is already in use",
-          errors: [{ field: "email", message: "Email is already in use" }],
-        });
-      }
-
-      updateData.email = email;
-      updateData.isActive = false;
-      emailChanged = true;
+      return sendError(res, 400, {
+        message: "Email cannot be changed",
+        errors: [{ field: "email", message: "Email cannot be changed" }],
+      });
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -428,17 +451,8 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
-    if (emailChanged) {
-      await inngest.send({
-        name: "user/signup",
-        data: { userId: updatedUser.id, email: updatedUser.email },
-      });
-    }
-
     return sendSuccess(res, 200, {
-      message: emailChanged
-        ? "Profile updated. Please verify your new email address."
-        : "Profile updated successfully",
+      message: "Profile updated successfully",
       user: serializeUserResponse(updatedUser),
     });
   } catch (error) {

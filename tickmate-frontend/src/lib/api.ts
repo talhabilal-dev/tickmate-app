@@ -1,21 +1,6 @@
 import axios from 'axios'
 
-const resolveApiBaseUrl = () => {
-  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
-  const normalized = rawUrl.replace(/\/+$/, '')
-
-  if (normalized.endsWith('/api/auth')) {
-    return normalized.slice(0, -'/auth'.length)
-  }
-
-  if (normalized.endsWith('/api')) {
-    return normalized
-  }
-
-  return `${normalized}/api`
-}
-
-const API_BASE_URL = resolveApiBaseUrl()
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -41,20 +26,20 @@ export const authApi = {
   signIn: async (data: {
     identifier: string
     password: string
+    role?: 'user' | 'admin'
   }) => {
-    const response = await apiClient.post('/auth/login', data)
+    const endpoint = data.role === 'admin' ? '/admin/login' : '/auth/login'
+    const response = await apiClient.post(endpoint, data)
     return response.data
   },
 
   checkUsernameAvailability: async (username: string) => {
-    const response = await apiClient.get('/auth/check-username', {
-      params: { username },
-    })
+    const response = await apiClient.get(`/auth/check-username/${username}`)
     return response.data
   },
 
   verifyEmail: async (token: string) => {
-    const response = await apiClient.post('/auth/verify', { token })
+    const response = await apiClient.post('/auth/verify-email', { token })
     return response.data
   },
 
@@ -64,51 +49,97 @@ export const authApi = {
   },
 }
 
-export type AdminDashboardResponse = {
-  success: boolean
-  adminProfile: {
-    id: number
-    name: string
-    username: string
-    email: string
-    role: string
-    isActive: boolean
-  }
-  users: Array<{
-    id: number
-    name: string
-    email: string
-    role: string
-    isActive: boolean
-  }>
-  tickets: Array<{
-    id: number
-    title: string
-    status: string
-    priority: string
-  }>
-  stats: {
-    totalUsers: number
-    totalTickets: number
-    inProgressTickets: number
-    completedTickets: number
-    activeUsers: number
-  }
+// User API endpoints
+export const userApi = {
+  getProfile: async () => {
+    const response = await apiClient.get('/auth/profile')
+    return response.data
+  },
+
+  updateProfile: async (data: {
+    name?: string
+    username?: string
+    email?: string
+    skills?: string[]
+  }) => {
+    const response = await apiClient.patch('/auth/profile', data)
+    return response.data
+  },
+
+  changePassword: async (data: {
+    currentPassword: string
+    newPassword: string
+  }) => {
+    const response = await apiClient.post('/user/change-password', data)
+    return response.data
+  },
+
+  verifyEmail: async (token: string) => {
+    const response = await apiClient.post('/user/verify-email', { token })
+    return response.data
+  },
 }
 
-export const adminApi = {
-  login: async (data: { identifier: string; password: string }) => {
-    const response = await apiClient.post('/admin/login', data)
+// Ticket API endpoints
+export const ticketApi = {
+  getMyTickets: async () => {
+    const response = await apiClient.get('/tickets')
     return response.data
   },
 
-  logout: async () => {
-    const response = await apiClient.post('/admin/logout')
+  getTicketStats: async () => {
+    const response = await apiClient.get('/tickets/tickets-summary')
     return response.data
   },
 
-  getDashboard: async () => {
-    const response = await apiClient.get<AdminDashboardResponse>('/admin/dashboard')
+  createTicket: async (data: {
+    title: string
+    description: string
+    category: string
+    priority?: 'low' | 'medium' | 'high'
+    deadline?: Date
+    relatedSkills?: string[]
+    helpfulNotes?: string
+    isPublic?: boolean
+  }) => {
+    const response = await apiClient.post('/tickets', data)
+    return response.data
+  },
+
+  searchSimilarTickets: async (data: {
+    title: string
+    description: string
+    category?: string
+    limit?: number
+  }) => {
+    const response = await apiClient.post('/tickets/search-similar', data)
+    return response.data
+  },
+
+  getTicketById: async (ticketId: number) => {
+    const response = await apiClient.get(`/tickets/${ticketId}`)
+    return response.data
+  },
+
+  updateTicket: async (data: {
+    ticketId: number
+    title?: string
+    description?: string
+    category?: string
+    deadline?: Date | null
+    status?: 'pending' | 'in_progress' | 'completed'
+    priority?: 'low' | 'medium' | 'high'
+    helpfulNotes?: string | null
+    relatedSkills?: string[]
+    isPublic?: boolean
+  }) => {
+    const { ticketId, ...updateData } = data
+    const response = await apiClient.put(`/tickets/${ticketId}`, updateData)
+    return response.data
+  },
+
+  deleteTicket: async (ticketId: number) => {
+    const response = await apiClient.delete(`/tickets/${ticketId}`)
     return response.data
   },
 }

@@ -27,7 +27,6 @@ export default function UsernameAvailabilityIndicator({
       try {
         setStatus('checking')
         const response = await authApi.checkUsernameAvailability(debouncedUsername)
-        console.log(response)
         setStatus(response.available ? 'available' : 'taken')
       } catch (error) {
         setStatus('error')

@@ -7,7 +7,7 @@ import {
   forgotPassword,
   resetPassword,
   checkUsernameAvailability,
-  // updateSkills,
+  resendVerificationEmail,
   getUser,
   updateUser,
   changePassword,
@@ -23,7 +23,7 @@ router.post("/logout", verifyAuthToken, logout);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/check-username/:username", checkUsernameAvailability);
-// router.put("/update-skills", verifyAuthToken, updateSkills);
+router.post("/resend-verification-email", resendVerificationEmail);
 router.patch("/profile", verifyAuthToken, updateUser);
 router.put("/update-password", verifyAuthToken, changePassword);
 router.get("/profile", verifyAuthToken, getUser);

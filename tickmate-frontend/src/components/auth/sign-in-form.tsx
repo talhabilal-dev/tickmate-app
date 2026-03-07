@@ -10,16 +10,15 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { signInSchema, type SignInData } from '@/lib/schemas'
-import { adminApi, authApi } from '@/lib/api'
+import { authApi } from '@/lib/api'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 
-type SignInFormProps = {
-  redirectPath?: string
-  isAdmin?: boolean
+interface SignInFormProps {
+  role?: 'user' | 'admin'
 }
 
-export default function SignInForm({ redirectPath = '/dashboard', isAdmin = false }: SignInFormProps) {
+export default function SignInForm({ role }: SignInFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -36,16 +35,17 @@ export default function SignInForm({ redirectPath = '/dashboard', isAdmin = fals
   const onSubmit = async (data: SignInData) => {
     try {
       setIsLoading(true)
-      if (isAdmin) {
-        await adminApi.login(data)
-      } else {
-        await authApi.signIn(data)
+      const submitData = {
+        ...data,
+        role: role || data.role,
       }
+      await authApi.signIn(submitData)
       toast({
         title: 'Success',
-        description: isAdmin ? 'Admin logged in successfully' : 'Logged in successfully',
+        description: 'Logged in successfully',
       })
-      router.push(redirectPath)
+      const dashboardUrl = role === 'admin' ? '/dashboard/admin' : '/dashboard/user'
+      router.push(dashboardUrl)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -63,12 +63,12 @@ export default function SignInForm({ redirectPath = '/dashboard', isAdmin = fals
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {isAdmin ? 'Admin Sign In' : 'Sign In'}
+            {role === 'admin' ? 'Admin Sign In' : 'User Sign In'}
           </CardTitle>
         </div>
         <CardDescription>
-          {isAdmin
-            ? 'Enter your admin email and password'
+          {role === 'admin' 
+            ? 'Enter your admin credentials to access the control panel' 
             : 'Enter your email or username and password'}
         </CardDescription>
       </CardHeader>
@@ -79,7 +79,7 @@ export default function SignInForm({ redirectPath = '/dashboard', isAdmin = fals
             <Label htmlFor="identifier">Email or Username</Label>
             <Input
               id="identifier"
-              placeholder={isAdmin ? 'admin@example.com' : 'john@example.com or johndoe'}
+              placeholder="john@example.com or johndoe"
               {...register('identifier')}
               disabled={isLoading}
               aria-describedby={errors.identifier ? 'identifier-error' : undefined}
@@ -130,25 +130,16 @@ export default function SignInForm({ redirectPath = '/dashboard', isAdmin = fals
             className="w-full ai-button font-semibold text-base"
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : isAdmin ? 'Sign In as Admin' : 'Sign In'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
 
           {/* Sign Up Link */}
-          {!isAdmin ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Don{"'"}t have an account?{' '}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">
-              Not an admin?{' '}
-              <Link href="/signin" className="text-primary hover:underline">
-                User sign in
-              </Link>
-            </p>
-          )}
+          <p className="text-center text-sm text-muted-foreground">
+            Don{"'"}t have an account?{' '}
+            <Link href="/auth/signup" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>
