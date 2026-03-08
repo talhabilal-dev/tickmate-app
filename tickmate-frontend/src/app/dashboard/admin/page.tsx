@@ -8,7 +8,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { adminApi, authApi, getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Users, BarChart3, Shield, Database, AlertCircle } from 'lucide-react';
+import { LogOut, Users, BarChart3, Shield, Database, AlertCircle, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminDashboard() {
@@ -153,6 +153,24 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted-foreground mb-4">Manage security settings</p>
               <Button className="w-full ai-button" size="sm">
                 Security Settings
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Ticket Management Card */}
+          <Card className="border-primary/20 shadow-md ai-glow hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Ticket Management</CardTitle>
+                <div className="w-10 h-10 rounded-full bg-linear-to-r from-primary to-secondary flex items-center justify-center">
+                  <Ticket className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">Toggle ticket status and delete tickets</p>
+              <Button className="w-full ai-button" size="sm" asChild>
+                <Link href="/dashboard/admin/tickets">Manage Tickets</Link>
               </Button>
             </CardContent>
           </Card>

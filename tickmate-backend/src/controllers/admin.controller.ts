@@ -1,5 +1,5 @@
 import db from "../config/db.config.js";
-import { desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { aiUsageLogsTable, auditLogsTable, usersTable, ticketsTable } from "../models/model.js";
 import { sendError, sendSuccess, sendZodValidationError } from "../utils/response.utils.js";
 import type { Request, Response } from "express";
@@ -10,6 +10,7 @@ import {
   loginSchema,
 } from "../schemas/user.schema.js";
 import { adminCreateTicketSchema } from "../schemas/ticket.schema.js";
+import { deleteTicketSchema } from "../schemas/ticket.schema.js";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
@@ -18,6 +19,10 @@ import {
   getClearAuthCookieOptions,
 } from "../utils/cookie.utils.js";
 import { logAuditEventFromRequest } from "../utils/audit-log.utils.js";
+import {
+  deleteTicketVector,
+  upsertResolvedPublicTicketVector,
+} from "../utils/vector-db.utils.js";
 
 
 export const adminLogin = async (req: Request, res: Response) => {
@@ -896,6 +901,207 @@ export const updateUser = async (req: Request, res: Response) => {
     } else {
       console.error("Error updating user:", error);
     }
+    return sendError(res, 500, {
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const toggleTicketStatusByAdmin = async (req: Request, res: Response) => {
+  const validation = deleteTicketSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return sendZodValidationError(res, validation.error.issues);
+  }
+
+  const { ticketId } = validation.data;
+
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return sendError(res, 403, {
+        message: "Forbidden: Admins only",
+      });
+    }
+
+    const [existingTicket] = await db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        status: ticketsTable.status,
+        createdBy: ticketsTable.createdBy,
+        isPublic: ticketsTable.isPublic,
+      })
+      .from(ticketsTable)
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+
+    if (!existingTicket) {
+      return sendError(res, 404, {
+        message: "Ticket not found",
+      });
+    }
+
+    const newStatus = existingTicket.status === "completed" ? "pending" : "completed";
+
+    const [updatedTicket] = await db
+      .update(ticketsTable)
+      .set({
+        status: newStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(ticketsTable.id, ticketId))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      });
+
+    if (!updatedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to update ticket status",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: newStatus === "completed" ? "ticket_completed" : "ticket_updated",
+      entityType: "ticket",
+      entityId: updatedTicket.id,
+      ticketId: updatedTicket.id,
+      targetUserId: updatedTicket.createdBy,
+      description: "Admin toggled ticket status",
+      metadata: {
+        title: existingTicket.title,
+        oldStatus: existingTicket.status,
+        newStatus,
+      },
+    });
+
+    try {
+      if (updatedTicket.status === "completed" && updatedTicket.isPublic) {
+        await upsertResolvedPublicTicketVector(updatedTicket);
+      } else {
+        await deleteTicketVector(updatedTicket.id);
+      }
+    } catch (vectorError) {
+      if (vectorError instanceof Error) {
+        console.error("Vector sync failed after admin status toggle:", vectorError.message);
+      } else {
+        console.error("Vector sync failed after admin status toggle:", vectorError);
+      }
+    }
+
+    return sendSuccess(res, 200, {
+      message: "Ticket status updated successfully",
+      ticket: updatedTicket,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error toggling ticket status by admin:", error.message);
+    } else {
+      console.error("Error toggling ticket status by admin:", error);
+    }
+
+    return sendError(res, 500, {
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const deleteTicketByAdmin = async (req: Request, res: Response) => {
+  const validation = deleteTicketSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return sendZodValidationError(res, validation.error.issues);
+  }
+
+  const { ticketId } = validation.data;
+
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return sendError(res, 403, {
+        message: "Forbidden: Admins only",
+      });
+    }
+
+    const [existingTicket] = await db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        status: ticketsTable.status,
+        createdBy: ticketsTable.createdBy,
+      })
+      .from(ticketsTable)
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+
+    if (!existingTicket) {
+      return sendError(res, 404, {
+        message: "Ticket not found",
+      });
+    }
+
+    const [deletedTicket] = await db
+      .update(ticketsTable)
+      .set({
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)))
+      .returning({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+      });
+
+    if (!deletedTicket) {
+      return sendError(res, 500, {
+        message: "Failed to delete ticket",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: "ticket_deleted",
+      entityType: "ticket",
+      entityId: existingTicket.id,
+      ticketId: existingTicket.id,
+      targetUserId: existingTicket.createdBy,
+      description: "Admin deleted ticket",
+      metadata: {
+        title: existingTicket.title,
+        status: existingTicket.status,
+      },
+    });
+
+    try {
+      await deleteTicketVector(existingTicket.id);
+    } catch (vectorError) {
+      if (vectorError instanceof Error) {
+        console.error("Vector delete failed after admin ticket deletion:", vectorError.message);
+      } else {
+        console.error("Vector delete failed after admin ticket deletion:", vectorError);
+      }
+    }
+
+    return sendSuccess(res, 200, {
+      message: "Ticket deleted successfully",
+      ticket: deletedTicket,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error deleting ticket by admin:", error.message);
+    } else {
+      console.error("Error deleting ticket by admin:", error);
+    }
+
     return sendError(res, 500, {
       message: "Internal Server Error",
     });

@@ -346,6 +346,23 @@ type UpdateAdminUserResponse = ApiSuccessResponse & {
   user: AdminUser
 }
 
+type AdminTicket = TicketResponse & {
+  assignedTo: number | null
+  replies?: Array<{
+    message: string | null
+    createdAt: string | null
+    createdBy: string | null
+  }>
+}
+
+type GetAdminTicketsResponse = ApiSuccessResponse & {
+  tickets: AdminTicket[]
+}
+
+type ToggleAdminTicketStatusResponse = ApiSuccessResponse & {
+  ticket: AdminTicket
+}
+
 type AdminAuditLog = {
   id: number
   action: string
@@ -399,6 +416,26 @@ export const adminApi = {
   deleteUser: async (userId: number): Promise<ApiSuccessResponse> => {
     const response = await apiClient.delete<ApiSuccessResponse>('/admin/delete-user', {
       data: { userId },
+    })
+    return response.data
+  },
+
+  getTickets: async (): Promise<GetAdminTicketsResponse> => {
+    const response = await apiClient.get<GetAdminTicketsResponse>('/admin/tickets')
+    return response.data
+  },
+
+  toggleTicketStatus: async (ticketId: number): Promise<ToggleAdminTicketStatusResponse> => {
+    const response = await apiClient.put<ToggleAdminTicketStatusResponse>(
+      '/admin/tickets/toggle-status',
+      { ticketId },
+    )
+    return response.data
+  },
+
+  deleteTicket: async (ticketId: number): Promise<ApiSuccessResponse> => {
+    const response = await apiClient.delete<ApiSuccessResponse>('/admin/tickets/delete-ticket', {
+      data: { ticketId },
     })
     return response.data
   },
