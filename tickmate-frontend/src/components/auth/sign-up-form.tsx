@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { signUpSchema, type SignUpData } from '@/lib/schemas'
-import { authApi } from '@/lib/api'
+import { authApi, getApiErrorMessage } from '@/lib/api'
 import UsernameAvailabilityIndicator from './username-availability-indicator'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
@@ -55,7 +55,7 @@ export default function SignUpForm() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to create account',
+        description: getApiErrorMessage(error, 'Failed to create account'),
         variant: 'destructive',
       })
     } finally {
@@ -79,7 +79,7 @@ export default function SignUpForm() {
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
             Create Account
           </CardTitle>
         </div>

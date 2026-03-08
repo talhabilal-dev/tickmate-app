@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { signInSchema, type SignInData } from '@/lib/schemas'
-import { authApi } from '@/lib/api'
+import { type SignInData } from '@/lib/schemas'
+import { authApi, getApiErrorMessage } from '@/lib/api'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -29,7 +28,11 @@ export default function SignInForm({ role }: SignInFormProps) {
     handleSubmit,
     formState: { errors },
   } = useForm<SignInData>({
-    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      identifier: '',
+      password: '',
+      role,
+    },
   })
 
   const onSubmit = async (data: SignInData) => {
@@ -45,11 +48,11 @@ export default function SignInForm({ role }: SignInFormProps) {
         description: 'Logged in successfully',
       })
       const dashboardUrl = role === 'admin' ? '/dashboard/admin' : '/dashboard/user'
-      router.push(dashboardUrl)
+      router.replace(dashboardUrl)
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to sign in',
+        description: getApiErrorMessage(error, 'Failed to sign in'),
         variant: 'destructive',
       })
     } finally {
@@ -62,7 +65,7 @@ export default function SignInForm({ role }: SignInFormProps) {
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
             {role === 'admin' ? 'Admin Sign In' : 'User Sign In'}
           </CardTitle>
         </div>

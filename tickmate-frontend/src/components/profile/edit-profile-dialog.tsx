@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { type UpdateUserData } from '@/lib/schemas';
-import { authApi, userApi } from '@/lib/api';
+import { authApi, getApiErrorMessage, userApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -96,7 +96,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to update profile',
+        description: getApiErrorMessage(error, 'Failed to update profile'),
         variant: 'destructive',
       });
     } finally {

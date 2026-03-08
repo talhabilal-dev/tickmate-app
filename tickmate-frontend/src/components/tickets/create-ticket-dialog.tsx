@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -14,16 +15,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ticketApi } from '@/lib/api';
+import { getApiErrorMessage, ticketApi } from '@/lib/api';
 import { createTicketSchema, CreateTicketData, TicketResponse } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Plus, Search, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -31,9 +25,23 @@ import { Plus, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 interface CreateTicketDialogProps {
   onTicketCreated?: (ticket: TicketResponse) => void;
   triggerClassName?: string;
+  prefill?: {
+    title?: string;
+    description?: string;
+    category?: string;
+    relatedSkills?: string[];
+  };
+  prefillNonce?: number;
 }
 
-export function CreateTicketDialog({ onTicketCreated, triggerClassName }: CreateTicketDialogProps) {
+type CreateTicketFormData = z.input<typeof createTicketSchema>;
+
+export function CreateTicketDialog({
+  onTicketCreated,
+  triggerClassName,
+  prefill,
+  prefillNonce,
+}: CreateTicketDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'search' | 'create'>('search');
   const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([]);
@@ -47,14 +55,40 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
     watch,
     formState: { errors, isValid },
     reset,
-  } = useForm<CreateTicketData>({
-    resolver: zodResolver(createTicketSchema),
+    setValue,
+  } = useForm<CreateTicketFormData>({
+    resolver: zodResolver(createTicketSchema as any),
     mode: 'onChange',
   });
 
   const title = watch('title');
   const description = watch('description');
   const category = watch('category');
+
+  useEffect(() => {
+    if (!prefill || typeof prefillNonce === 'undefined') {
+      return;
+    }
+
+    if (prefill.title) {
+      setValue('title', prefill.title, { shouldValidate: true });
+    }
+
+    if (prefill.description) {
+      setValue('description', prefill.description, { shouldValidate: true });
+    }
+
+    if (prefill.category) {
+      setValue('category', prefill.category, { shouldValidate: true });
+    }
+
+    if (prefill.relatedSkills && prefill.relatedSkills.length > 0) {
+      setValue('relatedSkills', prefill.relatedSkills, { shouldValidate: true });
+    }
+
+    setOpen(true);
+    setStep('create');
+  }, [prefill, prefillNonce, setValue]);
 
   const handleSearchSimilar = async () => {
     if (!title || !description) {
@@ -74,12 +108,12 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
         category,
         limit: 5,
       });
-      setSimilarTickets(response.data || []);
+      setSimilarTickets(response.tickets || []);
     } catch (error: any) {
       console.log('[v0] Search similar tickets error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to search similar tickets',
+        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
         variant: 'destructive',
       });
     } finally {
@@ -87,15 +121,16 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
     }
   };
 
-  const onSubmit = async (data: CreateTicketData) => {
+  const onSubmit = async (data: CreateTicketFormData) => {
     try {
       setIsCreating(true);
-      const response = await ticketApi.createTicket(data);
+      const payload = createTicketSchema.parse(data);
+      const response = await ticketApi.createTicket(payload);
       toast({
         title: 'Success',
         description: 'Ticket created successfully',
       });
-      onTicketCreated?.(response.data);
+      onTicketCreated?.(response.ticket);
       setOpen(false);
       setStep('search');
       reset();
@@ -104,7 +139,7 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
       console.log('[v0] Create ticket error:', error);
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to create ticket',
+        description: getApiErrorMessage(error, 'Failed to create ticket'),
         variant: 'destructive',
       });
     } finally {
@@ -306,7 +341,9 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
                   <label className="text-sm font-semibold">Priority</label>
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    {...register('priority')}
+                    {...register('priority', {
+                      setValueAs: (value) => value || undefined,
+                    })}
                   >
                     <option value="">Select priority</option>
                     <option value="low">Low</option>
@@ -320,8 +357,10 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Deadline (Optional)</label>
                 <Input
-                  type="datetime-local"
-                  {...register('deadline')}
+                  type="date"
+                  {...register('deadline', {
+                    setValueAs: (value) => value || undefined,
+                  })}
                 />
               </div>
 
@@ -330,7 +369,16 @@ export function CreateTicketDialog({ onTicketCreated, triggerClassName }: Create
                 <label className="text-sm font-semibold">Related Skills (Optional)</label>
                 <Input
                   placeholder="Comma-separated skills"
-                  {...register('relatedSkills')}
+                  {...register('relatedSkills', {
+                    setValueAs: (value) => {
+                      if (!value) return undefined;
+
+                      return String(value)
+                        .split(',')
+                        .map((skill) => skill.trim())
+                        .filter(Boolean);
+                    },
+                  })}
                 />
               </div>
 

@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { ProfileCard } from '@/components/profile/profile-card'
 import { EditProfileDialog } from '@/components/profile/edit-profile-dialog'
 import { ChangePasswordDialog } from '@/components/profile/change-password-dialog'
-import { userApi, authApi } from '@/lib/api'
+import { userApi, authApi, getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { UserResponse } from '@/lib/schemas'
 import { LogOut } from 'lucide-react'
@@ -29,7 +29,7 @@ export default function UserProfilePage() {
       } catch (error: any) {
         toast({
           title: 'Error',
-          description: 'Failed to load profile',
+          description: getApiErrorMessage(error, 'Failed to load profile'),
           variant: 'destructive',
         })
 

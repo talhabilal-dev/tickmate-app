@@ -5,6 +5,7 @@ import {
   createTicket,
   deleteTicket,
   editTicket,
+  getPublicCompletedTickets,
   getSimilarResolvedTickets,
   getTickets,
   getUserTicketSummary,
@@ -15,6 +16,7 @@ import {
 const router : Router = express.Router();
 
 router.get("/", verifyAuthToken, getTickets);
+router.get("/public-completed", verifyAuthToken, getPublicCompletedTickets);
 router.post("/similar", verifyAuthToken, getSimilarResolvedTickets);
 router.post("/", verifyAuthToken, createTicket);
 router.put("/status/:id", verifyAuthToken, toggleTicketStatus);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { authApi, ticketApi } from '@/lib/api'
+import { authApi, getApiErrorMessage, ticketApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { LogOut, TrendingUp, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 
@@ -33,8 +33,8 @@ export default function UserDashboard() {
         setIsLoading(true)
         const statsRes = await ticketApi.getTicketStats()
 
-        const summary = statsRes?.summary ?? statsRes?.data?.summary
-        const tickets = statsRes?.tickets ?? statsRes?.data?.tickets ?? []
+        const summary = statsRes.summary
+        const tickets = statsRes.tickets
 
         if (summary) {
           const total = Number(summary.totalTickets ?? 0)
@@ -55,14 +55,14 @@ export default function UserDashboard() {
         const ticketList = Array.isArray(tickets) ? tickets : []
         setTicketStats({
           total: ticketList.length,
-          pending: ticketList.filter((t: any) => t.status === 'pending').length,
-          inProgress: ticketList.filter((t: any) => t.status === 'in_progress').length,
-          completed: ticketList.filter((t: any) => t.status === 'completed').length,
+          pending: ticketList.filter((t) => t.status === 'pending').length,
+          inProgress: ticketList.filter((t) => t.status === 'in_progress').length,
+          completed: ticketList.filter((t) => t.status === 'completed').length,
         })
       } catch (error: any) {
         toast({
           title: 'Error',
-          description: 'Failed to load ticket summary',
+          description: getApiErrorMessage(error, 'Failed to load ticket summary'),
           variant: 'destructive',
         })
 

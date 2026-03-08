@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, type ResetPasswordData } from '@/lib/schemas';
-import { userApi } from '@/lib/api';
+import { getApiErrorMessage, userApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -54,7 +54,7 @@ export function ChangePasswordDialog() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to change password',
+        description: getApiErrorMessage(error, 'Failed to change password'),
         variant: 'destructive',
       });
     } finally {

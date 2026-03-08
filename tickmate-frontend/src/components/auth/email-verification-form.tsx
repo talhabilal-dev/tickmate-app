@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { authApi } from '@/lib/api'
+import { authApi, getApiErrorMessage } from '@/lib/api'
 import Link from 'next/link'
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
@@ -42,7 +42,7 @@ export default function EmailVerificationForm() {
         }, 3000)
       } catch (err: any) {
         setStatus('error')
-        const errorMessage = err.response?.data?.message || 'Failed to verify email'
+        const errorMessage = getApiErrorMessage(err, 'Failed to verify email')
         setError(errorMessage)
         toast({
           title: 'Verification Failed',
@@ -60,7 +60,7 @@ export default function EmailVerificationForm() {
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
             Email Verification
           </CardTitle>
         </div>

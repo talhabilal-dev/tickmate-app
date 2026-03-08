@@ -12,6 +12,7 @@ import {
   createTicketSchema,
   deleteTicketSchema,
   editTicketSchema,
+  publicCompletedTicketsFilterSchema,
   similarTicketSearchSchema,
   ticketReplySchema,
 } from "../schemas/ticket.schema.js";
@@ -26,6 +27,8 @@ export const getSimilarResolvedTickets = async (req: Request, res: Response) => 
     if (!req.user?.userId) {
       return sendError(res, 401, { message: "Unauthorized" });
     }
+
+
 
     const validation = similarTicketSearchSchema.safeParse(req.body);
 
@@ -54,10 +57,11 @@ export const getSimilarResolvedTickets = async (req: Request, res: Response) => 
     }
 
     const similarTickets = await searchSimilarResolvedPublicTickets(searchInput);
+    const normalizedTickets = similarTickets.map((item) => item.ticket);
 
     return sendSuccess(res, 200, {
       message: "Similar tickets fetched successfully",
-      tickets: similarTickets,
+      tickets: normalizedTickets,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -195,6 +199,74 @@ export const getTickets = async (req: Request, res: Response) => {
   }
 };
 
+export const getPublicCompletedTickets = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized" });
+    }
+
+    const validation = publicCompletedTicketsFilterSchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return sendZodValidationError(res, validation.error.issues);
+    }
+
+    const { category, skills } = validation.data;
+
+    let query = db
+      .select({
+        id: ticketsTable.id,
+        title: ticketsTable.title,
+        description: ticketsTable.description,
+        status: ticketsTable.status,
+        category: ticketsTable.category,
+        priority: ticketsTable.priority,
+        deadline: ticketsTable.deadline,
+        helpfulNotes: ticketsTable.helpfulNotes,
+        relatedSkills: ticketsTable.relatedSkills,
+        replies: ticketsTable.replies,
+        isPublic: ticketsTable.isPublic,
+        createdBy: ticketsTable.createdBy,
+        assignedTo: ticketsTable.assignedTo,
+        createdAt: ticketsTable.createdAt,
+        updatedAt: ticketsTable.updatedAt,
+      })
+      .from(ticketsTable)
+      .where(
+        and(
+          eq(ticketsTable.status, "completed"),
+          eq(ticketsTable.isPublic, true),
+          typeof category !== "undefined" ? eq(ticketsTable.category, category) : undefined
+        )
+      )
+      .orderBy(desc(ticketsTable.updatedAt));
+
+    let tickets = await query;
+
+    if (skills && skills.length > 0) {
+      const normalizedSkills = skills.map((skill) => skill.toLowerCase());
+      tickets = tickets.filter((ticket) =>
+        ticket.relatedSkills.some((relatedSkill) =>
+          normalizedSkills.includes(relatedSkill.toLowerCase())
+        )
+      );
+    }
+
+    return sendSuccess(res, 200, {
+      message: "Public completed tickets fetched successfully",
+      tickets,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching public completed tickets", error.message);
+    } else {
+      console.error("Error fetching public completed tickets", error);
+    }
+
+    return sendError(res, 500, { message: "Internal Server Error" });
+  }
+};
+
 export const toggleTicketStatus = async (req: Request, res: Response) => {
   try {
     if (!req.user?.userId) {
@@ -228,11 +300,11 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
       });
     }
 
-    const canManage = req.user.role === "admin" || ticket.createdBy === userId;
+    const canManage = ticket.createdBy === userId;
 
     if (!canManage) {
       return sendError(res, 403, {
-        message: "You are not allowed to update this ticket",
+        message: "Only the ticket creator can mark this ticket as completed",
       });
     }
 
@@ -351,6 +423,7 @@ export const ticketReply = async (req: Request, res: Response) => {
       return sendError(res, 401, { message: "Unauthorized" });
     }
 
+
     const validation = ticketReplySchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -358,7 +431,6 @@ export const ticketReply = async (req: Request, res: Response) => {
     }
 
     const { message, ticketId } = validation.data;
-
     if (req.user.role !== "moderator" && req.user.role !== "admin") {
       return sendError(res, 403, {
         message: "Forbidden: Moderators and Admins only",
@@ -387,13 +459,19 @@ export const ticketReply = async (req: Request, res: Response) => {
       });
     }
 
-    if (!ticket.assignedTo || ticket.assignedTo !== Number(req.user.userId)) {
+    const isAdmin = req.user.role === "admin";
+    const isAssignedModerator =
+      ticket.assignedTo && ticket.assignedTo === Number(req.user.userId);
+
+    if (!isAdmin && !isAssignedModerator) {
       return sendError(res, 403, {
         message: "You are not allowed to reply to this ticket",
       });
     }
 
-    const updatedReplies = [...ticket.replies, {
+    const existingReplies = Array.isArray(ticket.replies) ? ticket.replies : [];
+
+    const updatedReplies = [...existingReplies, {
       message,
       createdAt: new Date().toISOString(),
       createdBy: req.user.userId,

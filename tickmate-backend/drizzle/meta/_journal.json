@@ -29,6 +29,20 @@
       "when": 1772781708346,
       "tag": "0003_legal_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772951478251,
+      "tag": "0004_giant_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772952047879,
+      "tag": "0005_tearful_silver_fox",
+      "breakpoints": true
     }
   ]
 }

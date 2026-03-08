@@ -4,39 +4,63 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
 import { EditTicketDialog } from '@/components/tickets/edit-ticket-dialog'
 import { TicketCard } from '@/components/tickets/ticket-card'
-import { authApi, ticketApi } from '@/lib/api'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { authApi, getApiErrorMessage, ticketApi, userApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { TicketResponse } from '@/lib/schemas'
-import { AlertCircle, LogOut } from 'lucide-react'
+import { AlertCircle, LogOut, Search } from 'lucide-react'
 
 export default function UserTicketsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [tickets, setTickets] = useState<TicketResponse[]>([])
+  const [assignedTickets, setAssignedTickets] = useState<TicketResponse[]>([])
+  const [isModerator, setIsModerator] = useState(false)
+  const [activeTab, setActiveTab] = useState<'my' | 'assigned'>('my')
   const [isLoading, setIsLoading] = useState(true)
   const [editingTicket, setEditingTicket] = useState<TicketResponse | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [completingTicketId, setCompletingTicketId] = useState<number | null>(null)
+  const [replyingTicketId, setReplyingTicketId] = useState<number | null>(null)
+  const [searchDescription, setSearchDescription] = useState('')
+  const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([])
+  const [isSearchingSimilar, setIsSearchingSimilar] = useState(false)
+  const [prefillTicket, setPrefillTicket] = useState<{
+    title?: string
+    description?: string
+    category?: string
+    relatedSkills?: string[]
+  } | null>(null)
+  const [prefillNonce, setPrefillNonce] = useState(0)
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
         setIsLoading(true)
-        const ticketsRes = await ticketApi.getMyTickets()
-        const resolvedTickets =
-          ticketsRes?.tickets ??
-          ticketsRes?.data?.tickets ??
-          ticketsRes?.data ??
-          []
+        const [profileRes, ticketsRes] = await Promise.all([
+          userApi.getProfile(),
+          ticketApi.getMyTickets(),
+        ])
 
-        setTickets(Array.isArray(resolvedTickets) ? resolvedTickets : [])
+        const role = profileRes?.user?.role
+        const canSeeAssigned = role === 'moderator'
+
+        setIsModerator(canSeeAssigned)
+        setTickets(Array.isArray(ticketsRes.tickets) ? ticketsRes.tickets : [])
+
+        if (canSeeAssigned) {
+          const assignedRes = await ticketApi.getAssignedTickets()
+          setAssignedTickets(Array.isArray(assignedRes.tickets) ? assignedRes.tickets : [])
+        }
       } catch (error: any) {
         toast({
           title: 'Error',
-          description: 'Failed to load tickets',
+          description: getApiErrorMessage(error, 'Failed to load tickets'),
           variant: 'destructive',
         })
 
@@ -75,27 +99,118 @@ export default function UserTicketsPage() {
 
   const handleTicketUpdated = (updatedTicket: TicketResponse) => {
     setTickets((prev) => prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)))
+    setAssignedTickets((prev) => prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)))
     setEditingTicket(null)
     setShowEditDialog(false)
   }
 
   const handleDeleteTicket = async (ticketId: number) => {
-    if (!confirm('Are you sure you want to delete this ticket?')) return
-
     try {
       await ticketApi.deleteTicket(ticketId)
       setTickets((prev) => prev.filter((t) => t.id !== ticketId))
+      setAssignedTickets((prev) => prev.filter((t) => t.id !== ticketId))
       toast({
         title: 'Success',
         description: 'Ticket deleted successfully',
       })
-    } catch (_error) {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to delete ticket',
+        description: getApiErrorMessage(error, 'Failed to delete ticket'),
         variant: 'destructive',
       })
     }
+  }
+
+  const handleMarkCompleted = async (ticketId: number) => {
+    try {
+      setCompletingTicketId(ticketId)
+      const response = await ticketApi.markTicketCompleted(ticketId)
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)),
+      )
+      setAssignedTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)),
+      )
+      toast({
+        title: 'Success',
+        description: 'Ticket marked as completed',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to update ticket status'),
+        variant: 'destructive',
+      })
+    } finally {
+      setCompletingTicketId(null)
+    }
+  }
+
+  const handleReplyTicket = async (ticketId: number, message: string) => {
+    try {
+      setReplyingTicketId(ticketId)
+      const response = await ticketApi.replyToTicket({ ticketId, message })
+      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)))
+      setAssignedTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)))
+      toast({
+        title: 'Success',
+        description: 'Reply sent successfully',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to send reply'),
+        variant: 'destructive',
+      })
+    } finally {
+      setReplyingTicketId(null)
+    }
+  }
+
+  const handleSearchByDescription = async () => {
+    if (!searchDescription.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a description to search similar tickets',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsSearchingSimilar(true)
+      const queryText = searchDescription.trim()
+      const response = await ticketApi.searchSimilarTickets({
+        title: queryText.slice(0, 80),
+        description: queryText,
+        limit: 5,
+      })
+      setSimilarTickets(Array.isArray(response.tickets) ? response.tickets : [])
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSearchingSimilar(false)
+    }
+  }
+
+  const handleClearSimilarSearch = () => {
+    setSearchDescription('')
+    setSimilarTickets([])
+  }
+
+  const handleCreateFromSimilar = (ticket: TicketResponse) => {
+    setPrefillTicket({
+      title: ticket.title,
+      description: ticket.description,
+      category: ticket.category,
+      relatedSkills: ticket.relatedSkills,
+    })
+    setPrefillNonce((value) => value + 1)
   }
 
   if (isLoading) {
@@ -135,38 +250,138 @@ export default function UserTicketsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">Recent Tickets</h2>
-          <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
-        </div>
-
-        {tickets.length === 0 ? (
-          <Card className="border-primary/10">
-            <CardContent className="pt-12 pb-12 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full gradient-ai/10 flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-primary" />
-                </div>
-              </div>
-              <p className="text-muted-foreground mb-4">No tickets yet</p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Create your first ticket to get help and share your ideas with the community
-              </p>
-              <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tickets.map((ticket) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={ticket}
-                onEdit={handleEditTicket}
-                onDelete={handleDeleteTicket}
+        <Tabs
+          value={activeTab}
+          onValueChange={(value: string) => setActiveTab(value as 'my' | 'assigned')}
+          className="space-y-6"
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <TabsList>
+              <TabsTrigger value="my">My Tickets</TabsTrigger>
+              {isModerator && <TabsTrigger value="assigned">Assigned Tickets</TabsTrigger>}
+            </TabsList>
+            {activeTab === 'my' && (
+              <CreateTicketDialog
+                onTicketCreated={handleTicketCreated}
+                triggerClassName="w-full sm:w-auto"
+                prefill={prefillTicket ?? undefined}
+                prefillNonce={prefillNonce}
               />
-            ))}
+            )}
           </div>
-        )}
+
+          <TabsContent value="my" className="space-y-6">
+            <Card className="border-primary/10">
+              <CardContent className="pt-6 space-y-3">
+                <p className="text-sm font-semibold">Search Similar Tickets By Description</p>
+                <Textarea
+                  placeholder="Describe your issue or question to find related completed public tickets"
+                  value={searchDescription}
+                  onChange={(event) => setSearchDescription(event.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleSearchByDescription} disabled={isSearchingSimilar} variant="outline">
+                    <Search className="w-4 h-4 mr-2" />
+                    {isSearchingSimilar ? 'Searching...' : 'Find Similar'}
+                  </Button>
+                  <Button variant="ghost" onClick={handleClearSimilarSearch}>
+                    Clear
+                  </Button>
+                </div>
+
+                {similarTickets.length > 0 && (
+                  <div className="space-y-2 border-t pt-3">
+                    <p className="text-sm font-semibold">Similar Tickets</p>
+                    <div className="space-y-2">
+                      {similarTickets.map((ticket) => (
+                        <div key={ticket.id} className="rounded-md border border-primary/10 p-3">
+                          <p className="font-medium">{ticket.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Category: {ticket.category} • Status: {ticket.status}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                            {ticket.description}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => handleCreateFromSimilar(ticket)}
+                          >
+                            Create from this
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {tickets.length === 0 ? (
+              <Card className="border-primary/10">
+                <CardContent className="pt-12 pb-12 text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 rounded-full gradient-ai/10 flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8 text-primary" />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground mb-4">No tickets yet</p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Create your first ticket to get help and share your ideas with the community
+                  </p>
+                  <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {tickets.map((ticket) => (
+                  <TicketCard
+                    key={ticket.id}
+                    ticket={ticket}
+                    onEdit={handleEditTicket}
+                    onDelete={handleDeleteTicket}
+                    onMarkCompleted={handleMarkCompleted}
+                    isCompleting={completingTicketId === ticket.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {isModerator && (
+            <TabsContent value="assigned" className="space-y-6">
+              {assignedTickets.length === 0 ? (
+                <Card className="border-primary/10">
+                  <CardContent className="pt-12 pb-12 text-center">
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 rounded-full gradient-ai/10 flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-primary" />
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground mb-4">No assigned tickets</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tickets assigned to you will appear here.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {assignedTickets.map((ticket) => (
+                    <TicketCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      onReply={handleReplyTicket}
+                      isCompleting={replyingTicketId === ticket.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
 
         {editingTicket && (
           <EditTicketDialog

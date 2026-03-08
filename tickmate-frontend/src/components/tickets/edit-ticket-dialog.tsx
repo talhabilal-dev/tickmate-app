@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ticketApi } from '@/lib/api';
+import { getApiErrorMessage, ticketApi } from '@/lib/api';
 import { editTicketSchema, EditTicketData, TicketResponse } from '@/lib/schemas';
+
+type EditTicketFormData = z.input<typeof editTicketSchema>;
 
 interface EditTicketDialogProps {
   open: boolean;
@@ -34,40 +37,47 @@ export function EditTicketDialog({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
+  const defaultDeadline = ticket.deadline
+    ? new Date(ticket.deadline).toISOString().slice(0, 10)
+    : '';
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<EditTicketData>({
-    resolver: zodResolver(editTicketSchema),
+  } = useForm<EditTicketFormData>({
+    resolver: zodResolver(editTicketSchema as any),
     defaultValues: {
       ticketId: ticket.id,
       title: ticket.title,
       description: ticket.description,
       category: ticket.category,
-      status: ticket.status,
       priority: ticket.priority,
+      deadline: defaultDeadline,
       helpfulNotes: ticket.helpfulNotes || '',
       isPublic: ticket.isPublic,
     },
   });
 
-  const onSubmit = async (data: EditTicketData) => {
+  const onSubmit = async (data: EditTicketFormData) => {
     try {
       setIsUpdating(true);
-      const response = await ticketApi.updateTicket(data);
+      const payload: EditTicketData = editTicketSchema.parse(data);
+      const response = await ticketApi.updateTicket(payload);
       toast({
         title: 'Success',
         description: 'Ticket updated successfully',
       });
-      onTicketUpdated?.(response.data);
+      if (response.ticket) {
+        onTicketUpdated?.(response.ticket);
+      }
       onOpenChange(false);
     } catch (error: any) {
       console.log('[v0] Update ticket error:', error);
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to update ticket',
+        description: getApiErrorMessage(error, 'Failed to update ticket'),
         variant: 'destructive',
       });
     } finally {
@@ -111,27 +121,13 @@ export function EditTicketDialog({
             )}
           </div>
 
-          {/* Category and Status Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Category</label>
-              <Input
-                placeholder="Category"
-                {...register('category')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Status</label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                {...register('status')}
-              >
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+          {/* Category */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Category</label>
+            <Input
+              placeholder="Category"
+              {...register('category')}
+            />
           </div>
 
           {/* Priority and Deadline Grid */}
@@ -151,8 +147,10 @@ export function EditTicketDialog({
             <div className="space-y-2">
               <label className="text-sm font-semibold">Deadline</label>
               <Input
-                type="datetime-local"
-                {...register('deadline')}
+                type="date"
+                {...register('deadline', {
+                  setValueAs: (value) => value || undefined,
+                })}
               />
             </div>
           </div>
@@ -163,7 +161,9 @@ export function EditTicketDialog({
             <Textarea
               placeholder="Any additional notes..."
               rows={3}
-              {...register('helpfulNotes')}
+              {...register('helpfulNotes', {
+                setValueAs: (value) => value || undefined,
+              })}
             />
           </div>
 

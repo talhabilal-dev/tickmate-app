@@ -64,3 +64,26 @@ export const similarTicketSearchSchema = zod
     limit: zod.coerce.number().int().min(1).max(20).optional(),
   })
   .strip();
+
+export const publicCompletedTicketsFilterSchema = zod
+  .object({
+    category: zod
+      .preprocess(
+        (value) => (typeof value === "string" ? value.trim() : undefined),
+        zod.string().min(1).max(255).optional()
+      ),
+    skills: zod
+      .preprocess((value) => {
+        if (typeof value !== "string") {
+          return undefined;
+        }
+
+        const parsed = value
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean);
+
+        return parsed.length > 0 ? parsed : undefined;
+      }, zod.array(zod.string().trim().min(1)).optional()),
+  })
+  .strip();

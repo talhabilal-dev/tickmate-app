@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LayoutDashboard, Ticket, UserCircle, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Ticket, UserCircle, Sparkles, Globe } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +25,11 @@ const mainNavItems = [
     title: 'My Tickets',
     href: '/dashboard/user/tickets',
     icon: Ticket,
+  },
+  {
+    title: 'Public Tickets',
+    href: '/dashboard/user/public-tickets',
+    icon: Globe,
   },
   {
     title: 'Profile',
