@@ -11,6 +11,7 @@ import {
   getUser,
   updateUser,
   changePassword,
+  deleteAccount,
 } from "../controllers/user.controller.js";
 import { verifyAuthToken } from "../middlewares/auth.middleware.js";
 
@@ -27,5 +28,6 @@ router.post("/resend-verification-email", resendVerificationEmail);
 router.patch("/profile", verifyAuthToken, updateUser);
 router.put("/update-password", verifyAuthToken, changePassword);
 router.get("/profile", verifyAuthToken, getUser);
+router.delete("/profile", verifyAuthToken, deleteAccount);
 
 export default router;

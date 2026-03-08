@@ -105,6 +105,11 @@ export const userApi = {
     const response = await apiClient.post('/user/verify-email', { token })
     return response.data
   },
+
+  deleteAccount: async () => {
+    const response = await apiClient.delete('/auth/profile')
+    return response.data
+  },
 }
 
 // Ticket API endpoints
@@ -341,6 +346,41 @@ type UpdateAdminUserResponse = ApiSuccessResponse & {
   user: AdminUser
 }
 
+type AdminAuditLog = {
+  id: number
+  action: string
+  entityType: string
+  entityId: number | null
+  actorUserId: number | null
+  actorName: string | null
+  targetUserId: number | null
+  targetName: string | null
+  ticketId: number | null
+  assignedFromUserId: number | null
+  assignedFromName: string | null
+  assignedToUserId: number | null
+  assignedToName: string | null
+  description: string | null
+  metadata: Record<string, unknown>
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: string
+}
+
+type AdminAuditLogsPagination = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+type GetAdminAuditLogsResponse = ApiSuccessResponse & {
+  logs: AdminAuditLog[]
+  pagination: AdminAuditLogsPagination
+}
+
 export const adminApi = {
   getUsers: async (): Promise<GetAdminUsersResponse> => {
     const response = await apiClient.get<GetAdminUsersResponse>('/admin/users')
@@ -381,6 +421,27 @@ export const adminApi = {
     const endpoint = queryString ? `/admin/ai-usage?${queryString}` : '/admin/ai-usage'
 
     const response = await apiClient.get<GetAdminAiUsageResponse>(endpoint)
+    return response.data
+  },
+
+  getAuditLogs: async (params?: {
+    page?: number
+    pageSize?: number
+  }): Promise<GetAdminAuditLogsResponse> => {
+    const query = new URLSearchParams()
+
+    if (typeof params?.page === 'number') {
+      query.set('page', String(params.page))
+    }
+
+    if (typeof params?.pageSize === 'number') {
+      query.set('pageSize', String(params.pageSize))
+    }
+
+    const queryString = query.toString()
+    const endpoint = queryString ? `/admin/audit-logs?${queryString}` : '/admin/audit-logs'
+
+    const response = await apiClient.get<GetAdminAuditLogsResponse>(endpoint)
     return response.data
   },
 }

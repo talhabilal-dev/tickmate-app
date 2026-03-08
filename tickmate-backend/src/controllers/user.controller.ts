@@ -14,7 +14,13 @@ import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 import { inngest } from "../inngest/client.js";
 import type { Request, Response } from "express";
-import { usersTable, magicLinksTable } from "../models/model.js";
+import {
+  usersTable,
+  magicLinksTable,
+  ticketsTable,
+  aiUsageLogsTable,
+  auditLogsTable,
+} from "../models/model.js";
 import { and, eq, or } from "drizzle-orm";
 import {
   sendError,
@@ -25,6 +31,7 @@ import {
   getAuthCookieOptions,
   getClearAuthCookieOptions,
 } from "../utils/cookie.utils.js";
+import { logAuditEventFromRequest } from "../utils/audit-log.utils.js";
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -78,12 +85,28 @@ export const signup = async (req: Request, res: Response) => {
       createdAt: usersTable.createdAt,
     })
 
-    const result = await inngest.send({
+    await inngest.send({
       name: "user/signup",
       data: { userId: newUser?.id, email: newUser?.email },
     });
 
-    console.log(result)
+    if (!newUser) {
+      return sendError(res, 500, {
+        message: "Failed to create user",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: "user_created",
+      entityType: "user",
+      entityId: newUser.id,
+      targetUserId: newUser.id,
+      description: "User account created via signup",
+      metadata: {
+        method: "self_signup",
+        role: newUser.role,
+      },
+    });
 
     return sendSuccess(res, 201, {
       message: "User created successfully",
@@ -296,6 +319,17 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie("token", token, getAuthCookieOptions(24 * 60 * 60 * 1000));
 
+    await logAuditEventFromRequest(req, {
+      action: "login",
+      entityType: "auth",
+      actorUserId: user.id,
+      targetUserId: user.id,
+      description: "User logged in",
+      metadata: {
+        role: user.role,
+      },
+    });
+
     return sendSuccess(res, 200, {
       message: "User logged in successfully",
     });
@@ -319,6 +353,19 @@ export const logout = async (req: Request, res: Response) => {
         message: "Unauthorized Access",
       });
     }
+
+    const actorUserId = Number(req.user.userId);
+    await logAuditEventFromRequest(req, {
+      action: "logout",
+      entityType: "auth",
+      actorUserId: Number.isInteger(actorUserId) ? actorUserId : null,
+      targetUserId: Number.isInteger(actorUserId) ? actorUserId : null,
+      description: "User logged out",
+      metadata: {
+        role: req.user.role,
+      },
+    });
+
     res.clearCookie("token", getClearAuthCookieOptions());
     return sendSuccess(res, 200, {
       message: "User logged out successfully",
@@ -660,6 +707,87 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
     }
     return sendError(res, 500, {
 
+      message: "Internal server error",
+    });
+  }
+};
+
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.userId) {
+      return sendError(res, 401, { message: "Unauthorized Access" });
+    }
+
+    const userId = Number(req.user.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return sendError(res, 401, { message: "Unauthorized Access" });
+    }
+
+    const [existingUser] = await db
+      .select({
+        id: usersTable.id,
+        role: usersTable.role,
+        email: usersTable.email,
+        username: usersTable.username,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+
+    if (!existingUser) {
+      return sendError(res, 404, {
+        message: "User not found",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: "user_deleted",
+      entityType: "user",
+      entityId: existingUser.id,
+      targetUserId: existingUser.id,
+      description: "User deleted own account",
+      metadata: {
+        role: existingUser.role,
+        username: existingUser.username,
+      },
+    });
+
+    await db.transaction(async (tx) => {
+      await tx.update(ticketsTable).set({ createdBy: null }).where(eq(ticketsTable.createdBy, userId));
+      await tx.update(ticketsTable).set({ assignedTo: null }).where(eq(ticketsTable.assignedTo, userId));
+
+      await tx.update(aiUsageLogsTable).set({ userId: null }).where(eq(aiUsageLogsTable.userId, userId));
+
+      await tx.update(auditLogsTable).set({ actorUserId: null }).where(eq(auditLogsTable.actorUserId, userId));
+      await tx.update(auditLogsTable).set({ targetUserId: null }).where(eq(auditLogsTable.targetUserId, userId));
+      await tx.update(auditLogsTable).set({ assignedFromUserId: null }).where(eq(auditLogsTable.assignedFromUserId, userId));
+      await tx.update(auditLogsTable).set({ assignedToUserId: null }).where(eq(auditLogsTable.assignedToUserId, userId));
+
+      await tx.delete(magicLinksTable).where(eq(magicLinksTable.userId, userId));
+
+      const [deletedUser] = await tx
+        .delete(usersTable)
+        .where(eq(usersTable.id, userId))
+        .returning({ id: usersTable.id });
+
+      if (!deletedUser) {
+        throw new Error("Failed to delete user");
+      }
+    });
+
+    res.clearCookie("token", getClearAuthCookieOptions());
+
+    return sendSuccess(res, 200, {
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Internal Server Error", error.message);
+    } else {
+      console.log("Internal Server Error", error);
+    }
+
+    return sendError(res, 500, {
       message: "Internal server error",
     });
   }

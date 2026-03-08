@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { ProfileCard } from '@/components/profile/profile-card'
 import { EditProfileDialog } from '@/components/profile/edit-profile-dialog'
 import { ChangePasswordDialog } from '@/components/profile/change-password-dialog'
+import { DeleteAccountDialog } from '@/components/profile/delete-account-dialog'
 import { userApi, authApi, getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { UserResponse } from '@/lib/schemas'
@@ -136,6 +137,7 @@ export default function UserProfilePage() {
             <CardContent className="space-y-3">
               <EditProfileDialog user={user} onProfileUpdate={handleProfileUpdate} />
               <ChangePasswordDialog />
+              <DeleteAccountDialog />
             </CardContent>
           </Card>
         </div>

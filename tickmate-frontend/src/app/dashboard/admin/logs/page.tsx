@@ -1,0 +1,219 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { adminApi, authApi, getApiErrorMessage } from '@/lib/api'
+import { useToast } from '@/hooks/use-toast'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { Button } from '@/components/ui/button'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { LogOut } from 'lucide-react'
+
+type AuditLogRow = {
+  id: number
+  action: string
+  entityType: string
+  entityId: number | null
+  actorUserId: number | null
+  actorName: string | null
+  targetUserId: number | null
+  targetName: string | null
+  ticketId: number | null
+  assignedFromUserId: number | null
+  assignedFromName: string | null
+  assignedToUserId: number | null
+  assignedToName: string | null
+  description: string | null
+  createdAt: string
+}
+
+export default function AdminLogsPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [logs, setLogs] = useState<AuditLogRow[]>([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+      router.push('/auth/signin')
+    } catch (_error) {
+      router.push('/auth/signin')
+    }
+  }
+
+  useEffect(() => {
+    const fetchAuditLogs = async () => {
+      try {
+        setIsLoading(true)
+
+        const response = await adminApi.getAuditLogs({
+          page,
+          pageSize,
+        })
+
+        setLogs(Array.isArray(response.logs) ? response.logs : [])
+        setTotal(response.pagination?.total ?? 0)
+        setTotalPages(response.pagination?.totalPages ?? 1)
+        setHasNextPage(Boolean(response.pagination?.hasNextPage))
+        setHasPreviousPage(Boolean(response.pagination?.hasPreviousPage))
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: getApiErrorMessage(error, 'Failed to load audit logs'),
+          variant: 'destructive',
+        })
+
+        if ((error as any)?.response?.status === 401 || (error as any)?.response?.status === 403) {
+          router.push('/auth/signin')
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAuditLogs()
+  }, [page, pageSize, router, toast])
+
+  return (
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-ai opacity-10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-ai-reverse opacity-10 blur-3xl rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+      <header className="border-b border-primary/10 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-2xl font-bold text-gradient-ai">Admin Logs</h1>
+              <p className="text-sm text-muted-foreground">Paginated activity history of admin and system actions</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-6">
+        <Card className="border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Audit Logs</CardTitle>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-muted-foreground" htmlFor="pageSize">
+                Rows per page
+              </label>
+              <select
+                id="pageSize"
+                value={pageSize}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value))
+                  setPage(1)
+                }}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading logs...</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No logs found.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Entity</TableHead>
+                    <TableHead>By</TableHead>
+                    <TableHead>Target</TableHead>
+                    <TableHead>Assignment</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">{log.action}</TableCell>
+                      <TableCell>
+                        {log.entityType}
+                        {log.entityId ? ` #${log.entityId}` : ''}
+                      </TableCell>
+                      <TableCell>
+                        {log.actorName ?? 'System'}
+                        {log.actorUserId ? ` (ID ${log.actorUserId})` : ''}
+                      </TableCell>
+                      <TableCell>
+                        {log.targetName ?? 'N/A'}
+                        {log.targetUserId ? ` (ID ${log.targetUserId})` : ''}
+                        {log.ticketId ? ` | Ticket #${log.ticketId}` : ''}
+                      </TableCell>
+                      <TableCell>
+                        {log.assignedFromUserId || log.assignedToUserId
+                          ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell className="max-w-[320px] truncate">{log.description ?? 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">
+                Showing page {page} of {totalPages} ({total} total logs)
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasPreviousPage || isLoading}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasNextPage || isLoading}
+                  onClick={() => setPage((prev) => prev + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  )
+}

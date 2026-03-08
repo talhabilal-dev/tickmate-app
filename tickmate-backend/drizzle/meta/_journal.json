@@ -50,6 +50,20 @@
       "when": 1772957188343,
       "tag": "0006_brave_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772960168064,
+      "tag": "0007_overrated_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772961167421,
+      "tag": "0008_small_spot",
+      "breakpoints": true
     }
   ]
 }

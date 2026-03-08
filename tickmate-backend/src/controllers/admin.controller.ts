@@ -1,6 +1,6 @@
 import db from "../config/db.config.js";
-import { desc, eq, ne, sql } from "drizzle-orm";
-import { aiUsageLogsTable, usersTable, ticketsTable } from "../models/model.js";
+import { desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { aiUsageLogsTable, auditLogsTable, usersTable, ticketsTable } from "../models/model.js";
 import { sendError, sendSuccess, sendZodValidationError } from "../utils/response.utils.js";
 import type { Request, Response } from "express";
 import { usersListResponseSchema } from "../schemas/user-response.schema.js";
@@ -17,6 +17,7 @@ import {
   getAuthCookieOptions,
   getClearAuthCookieOptions,
 } from "../utils/cookie.utils.js";
+import { logAuditEventFromRequest } from "../utils/audit-log.utils.js";
 
 
 export const adminLogin = async (req: Request, res: Response) => {
@@ -77,6 +78,17 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     res.cookie("token", token, getAuthCookieOptions(12 * 60 * 60 * 1000));
 
+    await logAuditEventFromRequest(req, {
+      action: "login",
+      entityType: "auth",
+      actorUserId: admin.id,
+      targetUserId: admin.id,
+      description: "Admin logged in",
+      metadata: {
+        role: admin.role,
+      },
+    });
+
     return sendSuccess(res, 200, {
       message: "Admin logged in successfully",
     });
@@ -101,6 +113,18 @@ export const adminLogout = async (req: Request, res: Response) => {
         message: "Forbidden: Admins only",
       });
     }
+
+    const actorUserId = Number(req.user.userId);
+    await logAuditEventFromRequest(req, {
+      action: "logout",
+      entityType: "auth",
+      actorUserId: Number.isInteger(actorUserId) ? actorUserId : null,
+      targetUserId: Number.isInteger(actorUserId) ? actorUserId : null,
+      description: "Admin logged out",
+      metadata: {
+        role: req.user.role,
+      },
+    });
 
     res.clearCookie("token", getClearAuthCookieOptions());
 
@@ -242,6 +266,24 @@ export const createUserByAdmin = async (req: Request, res: Response) => {
         createdAt: usersTable.createdAt,
       });
 
+    if (!newUser) {
+      return sendError(res, 500, {
+        message: "Failed to create user",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: "user_created",
+      entityType: "user",
+      entityId: newUser.id,
+      targetUserId: newUser.id,
+      description: "Admin created a new user",
+      metadata: {
+        role: newUser.role,
+        createdByRole: "admin",
+      },
+    });
+
     return sendSuccess(res, 201, {
       message: "User created by admin successfully",
       user: newUser,
@@ -269,6 +311,7 @@ export const getAllTickets = async (req: Request, res: Response) => {
     const tickets = await db
       .select()
       .from(ticketsTable)
+      .where(isNull(ticketsTable.deletedAt))
       .orderBy(desc(ticketsTable.createdAt));
 
     return sendSuccess(res, 200, {
@@ -380,6 +423,102 @@ export const getAiUsage = async (req: Request, res: Response) => {
   }
 };
 
+export const getAuditLogs = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return sendError(res, 403, {
+        message: "Forbidden: Admins only",
+      });
+    }
+
+    const parsedPage = Number(req.query.page ?? 1);
+    const parsedPageSize = Number(req.query.pageSize ?? 20);
+
+    const page = Number.isFinite(parsedPage) ? Math.max(1, Math.floor(parsedPage)) : 1;
+    const pageSize = Number.isFinite(parsedPageSize)
+      ? Math.min(100, Math.max(10, Math.floor(parsedPageSize)))
+      : 20;
+
+    const offset = (page - 1) * pageSize;
+
+    const [countRow] = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(auditLogsTable);
+
+    const total = Number(countRow?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    const logs = await db
+      .select({
+        id: auditLogsTable.id,
+        action: auditLogsTable.action,
+        entityType: auditLogsTable.entityType,
+        entityId: auditLogsTable.entityId,
+        actorUserId: auditLogsTable.actorUserId,
+        actorName: sql<string | null>`(
+          select ${usersTable.name}
+          from ${usersTable}
+          where ${usersTable.id} = ${auditLogsTable.actorUserId}
+          limit 1
+        )`,
+        targetUserId: auditLogsTable.targetUserId,
+        targetName: sql<string | null>`(
+          select ${usersTable.name}
+          from ${usersTable}
+          where ${usersTable.id} = ${auditLogsTable.targetUserId}
+          limit 1
+        )`,
+        ticketId: auditLogsTable.ticketId,
+        assignedFromUserId: auditLogsTable.assignedFromUserId,
+        assignedFromName: sql<string | null>`(
+          select ${usersTable.name}
+          from ${usersTable}
+          where ${usersTable.id} = ${auditLogsTable.assignedFromUserId}
+          limit 1
+        )`,
+        assignedToUserId: auditLogsTable.assignedToUserId,
+        assignedToName: sql<string | null>`(
+          select ${usersTable.name}
+          from ${usersTable}
+          where ${usersTable.id} = ${auditLogsTable.assignedToUserId}
+          limit 1
+        )`,
+        description: auditLogsTable.description,
+        metadata: auditLogsTable.metadata,
+        ipAddress: auditLogsTable.ipAddress,
+        userAgent: auditLogsTable.userAgent,
+        createdAt: auditLogsTable.createdAt,
+      })
+      .from(auditLogsTable)
+      .orderBy(desc(auditLogsTable.createdAt))
+      .limit(pageSize)
+      .offset(offset);
+
+    return sendSuccess(res, 200, {
+      message: "Audit logs fetched successfully",
+      logs,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching audit logs:", error.message);
+    } else {
+      console.error("Error fetching audit logs:", error);
+    }
+
+    return sendError(res, 500, {
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const createTicketByAdmin = async (req: Request, res: Response) => {
   const validation = adminCreateTicketSchema.safeParse(req.body);
 
@@ -455,6 +594,33 @@ export const createTicketByAdmin = async (req: Request, res: Response) => {
       });
     }
 
+    await logAuditEventFromRequest(req, {
+      action: "ticket_created",
+      entityType: "ticket",
+      entityId: newTicket.id,
+      ticketId: newTicket.id,
+      targetUserId: assignedTo,
+      description: "Admin created ticket",
+      metadata: {
+        title,
+        priority,
+        status: newTicket.status,
+      },
+    });
+
+    await logAuditEventFromRequest(req, {
+      action: "ticket_assigned",
+      entityType: "ticket",
+      entityId: newTicket.id,
+      ticketId: newTicket.id,
+      assignedFromUserId: null,
+      assignedToUserId: assignedTo,
+      description: "Ticket assigned by admin during creation",
+      metadata: {
+        title,
+      },
+    });
+
     return sendSuccess(res, 201, {
       message: "Ticket created and assigned to moderator successfully",
       ticket: newTicket,
@@ -488,6 +654,21 @@ export const deleteUser = async (req: Request, res: Response) => {
       });
     }
 
+    const [userToDelete] = await db
+      .select({
+        id: usersTable.id,
+        role: usersTable.role,
+        isActive: usersTable.isActive,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, parsedUserId));
+
+    if (!userToDelete) {
+      return sendError(res, 404, {
+        message: "User not found",
+      });
+    }
+
     const [deletedUser] = await db
       .delete(usersTable)
       .where(eq(usersTable.id, parsedUserId))
@@ -498,6 +679,18 @@ export const deleteUser = async (req: Request, res: Response) => {
         message: "User not found",
       });
     }
+
+    await logAuditEventFromRequest(req, {
+      action: "user_deleted",
+      entityType: "user",
+      entityId: parsedUserId,
+      targetUserId: parsedUserId,
+      description: "Admin deleted a user",
+      metadata: {
+        deletedRole: userToDelete.role,
+        wasActive: userToDelete.isActive,
+      },
+    });
 
     return sendSuccess(res, 200, {
       message: "User deleted successfully",
@@ -562,6 +755,7 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
       db
         .select()
         .from(ticketsTable)
+        .where(isNull(ticketsTable.deletedAt))
         .orderBy(desc(ticketsTable.createdAt)),
     ]);
 
@@ -616,7 +810,11 @@ export const updateUser = async (req: Request, res: Response) => {
     }
 
     const [existingUser] = await db
-      .select({ id: usersTable.id })
+      .select({
+        id: usersTable.id,
+        role: usersTable.role,
+        isActive: usersTable.isActive,
+      })
       .from(usersTable)
       .where(eq(usersTable.id, parsedUserId));
 
@@ -657,6 +855,34 @@ export const updateUser = async (req: Request, res: Response) => {
     if (!updatedUser) {
       return sendError(res, 404, {
         message: "User not found",
+      });
+    }
+
+    if (typeof role !== "undefined" && role !== existingUser.role) {
+      await logAuditEventFromRequest(req, {
+        action: "user_role_updated",
+        entityType: "user",
+        entityId: parsedUserId,
+        targetUserId: parsedUserId,
+        description: "Admin updated user role",
+        metadata: {
+          oldRole: existingUser.role,
+          newRole: role,
+        },
+      });
+    }
+
+    if (typeof isActive !== "undefined" && isActive !== existingUser.isActive) {
+      await logAuditEventFromRequest(req, {
+        action: "user_status_updated",
+        entityType: "user",
+        entityId: parsedUserId,
+        targetUserId: parsedUserId,
+        description: "Admin updated user active status",
+        metadata: {
+          oldIsActive: existingUser.isActive,
+          newIsActive: isActive,
+        },
       });
     }
 

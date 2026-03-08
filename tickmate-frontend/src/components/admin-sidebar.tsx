@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Bot, Users, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Bot, Users, FileClock, Sparkles } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +31,11 @@ const adminNavItems = [
     title: 'User Management',
     href: '/dashboard/admin/users',
     icon: Users,
+  },
+  {
+    title: 'Logs',
+    href: '/dashboard/admin/logs',
+    icon: FileClock,
   },
 ]
 

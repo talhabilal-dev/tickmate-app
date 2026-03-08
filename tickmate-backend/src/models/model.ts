@@ -8,6 +8,7 @@ import {
     timestamp,
     integer,
     varchar,
+    index,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["user", "moderator", "admin"]);
@@ -30,6 +31,24 @@ export const aiUsageStatusEnum = pgEnum("ai_usage_status", [
     "success",
     "error",
     "cache_hit",
+]);
+export const auditActionEnum = pgEnum("audit_action", [
+    "login",
+    "logout",
+    "user_created",
+    "user_deleted",
+    "user_role_updated",
+    "user_status_updated",
+    "ticket_created",
+    "ticket_updated",
+    "ticket_assigned",
+    "ticket_completed",
+    "ticket_deleted",
+]);
+export const auditEntityTypeEnum = pgEnum("audit_entity_type", [
+    "auth",
+    "user",
+    "ticket",
 ]);
 
 export const usersTable = pgTable("users", {
@@ -75,6 +94,7 @@ export const ticketsTable = pgTable("tickets", {
     updatedAt: timestamp("updated_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const magicLinksTable = pgTable("magic_links", {
@@ -111,3 +131,27 @@ export const aiUsageLogsTable = pgTable("ai_usage_logs", {
         .defaultNow()
         .notNull(),
 });
+
+export const auditLogsTable = pgTable("audit_logs", {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    action: auditActionEnum("action").notNull(),
+    entityType: auditEntityTypeEnum("entity_type").notNull(),
+    entityId: integer("entity_id"),
+    actorUserId: integer("actor_user_id").references(() => usersTable.id),
+    targetUserId: integer("target_user_id").references(() => usersTable.id),
+    ticketId: integer("ticket_id").references(() => ticketsTable.id),
+    assignedFromUserId: integer("assigned_from_user_id").references(() => usersTable.id),
+    assignedToUserId: integer("assigned_to_user_id").references(() => usersTable.id),
+    description: text("description"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().default(sql`'{}'::jsonb`).notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+    createdAtIdx: index("idx_audit_logs_created_at").on(table.createdAt),
+    actionCreatedAtIdx: index("idx_audit_logs_action_created_at").on(table.action, table.createdAt),
+    actorCreatedAtIdx: index("idx_audit_logs_actor_created_at").on(table.actorUserId, table.createdAt),
+    targetUserCreatedAtIdx: index("idx_audit_logs_target_user_created_at").on(table.targetUserId, table.createdAt),
+    ticketCreatedAtIdx: index("idx_audit_logs_ticket_created_at").on(table.ticketId, table.createdAt),
+    assignedToCreatedAtIdx: index("idx_audit_logs_assigned_to_created_at").on(table.assignedToUserId, table.createdAt),
+}));

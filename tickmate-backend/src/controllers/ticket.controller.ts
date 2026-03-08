@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { inngest } from "../inngest/client.js";
 import { usersTable, ticketsTable } from "../models/model.js";
 import db from "../config/db.config.js";
-import { and, desc, eq, gte, lt } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import {
   sendError,
   sendSuccess,
@@ -21,14 +21,13 @@ import {
   searchSimilarResolvedPublicTickets,
   upsertResolvedPublicTicketVector,
 } from "../utils/vector-db.utils.js";
+import { logAuditEventFromRequest } from "../utils/audit-log.utils.js";
 
 export const getSimilarResolvedTickets = async (req: Request, res: Response) => {
   try {
     if (!req.user?.userId) {
       return sendError(res, 401, { message: "Unauthorized" });
     }
-
-
 
     const validation = similarTicketSearchSchema.safeParse(req.body);
 
@@ -137,6 +136,20 @@ export const createTicket = async (req: Request, res: Response) => {
       },
     });
 
+    await logAuditEventFromRequest(req, {
+      action: "ticket_created",
+      entityType: "ticket",
+      entityId: newTicket.id,
+      ticketId: newTicket.id,
+      targetUserId: newTicket.createdBy,
+      description: "Ticket created",
+      metadata: {
+        title,
+        category,
+        priority,
+      },
+    });
+
     return sendSuccess(res, 201, {
       message: "Ticket created and processing started",
       ticket: newTicket,
@@ -182,7 +195,7 @@ export const getTickets = async (req: Request, res: Response) => {
         updatedAt: ticketsTable.updatedAt,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.createdBy, userId))
+      .where(and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)))
       .orderBy(desc(ticketsTable.createdAt));
 
     return sendSuccess(res, 200, {
@@ -236,6 +249,7 @@ export const getPublicCompletedTickets = async (req: Request, res: Response) => 
         and(
           eq(ticketsTable.status, "completed"),
           eq(ticketsTable.isPublic, true),
+          isNull(ticketsTable.deletedAt),
           typeof category !== "undefined" ? eq(ticketsTable.category, category) : undefined
         )
       )
@@ -290,9 +304,11 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
       .select({
         id: ticketsTable.id,
         createdBy: ticketsTable.createdBy,
+        title: ticketsTable.title,
+        status: ticketsTable.status,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.id, ticketId));
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -338,6 +354,19 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
         message: "Failed to update ticket status",
       });
     }
+
+    await logAuditEventFromRequest(req, {
+      action: "ticket_completed",
+      entityType: "ticket",
+      entityId: updatedTicket.id,
+      ticketId: updatedTicket.id,
+      targetUserId: updatedTicket.createdBy,
+      description: "Ticket marked as completed",
+      metadata: {
+        previousStatus: "pending_or_in_progress",
+        newStatus: "completed",
+      },
+    });
 
     try {
       if (updatedTicket.isPublic) {
@@ -399,7 +428,7 @@ export const assignedTickets = async (req: Request, res: Response) => {
         updatedAt: ticketsTable.updatedAt,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.assignedTo, userId))
+      .where(and(eq(ticketsTable.assignedTo, userId), isNull(ticketsTable.deletedAt)))
       .orderBy(desc(ticketsTable.createdAt));
 
     return sendSuccess(res, 200, {
@@ -445,7 +474,7 @@ export const ticketReply = async (req: Request, res: Response) => {
         replies: ticketsTable.replies,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.id, ticketId));
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -508,6 +537,19 @@ export const ticketReply = async (req: Request, res: Response) => {
       });
     }
 
+    await logAuditEventFromRequest(req, {
+      action: "ticket_updated",
+      entityType: "ticket",
+      entityId: updatedTicket.id,
+      ticketId: updatedTicket.id,
+      targetUserId: updatedTicket.createdBy,
+      description: "Ticket reply added",
+      metadata: {
+        replyBy: req.user.userId,
+        replyLength: message.length,
+      },
+    });
+
     return sendSuccess(res, 200, {
       message: "Ticket reply updated",
       ticket: updatedTicket,
@@ -551,7 +593,7 @@ export const getUserTicketSummary = async (req: Request, res: Response) => {
         relatedSkills: ticketsTable.relatedSkills,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.createdBy, userId))
+      .where(and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)))
       .orderBy(desc(ticketsTable.createdAt));
 
     // 🔹 Compute current summary
@@ -577,6 +619,7 @@ export const getUserTicketSummary = async (req: Request, res: Response) => {
       .where(
         and(
           eq(ticketsTable.createdBy, userId),
+          isNull(ticketsTable.deletedAt),
           gte(ticketsTable.createdAt, startOfPrevious),
           lt(ticketsTable.createdAt, endOfPrevious)
         )
@@ -630,9 +673,11 @@ export const deleteTicket = async (req: Request, res: Response) => {
       .select({
         id: ticketsTable.id,
         createdBy: ticketsTable.createdBy,
+        title: ticketsTable.title,
+        status: ticketsTable.status,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.id, ticketId));
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -652,8 +697,12 @@ export const deleteTicket = async (req: Request, res: Response) => {
     }
 
     const [deletedTicket] = await db
-      .delete(ticketsTable)
-      .where(eq(ticketsTable.id, ticketId))
+      .update(ticketsTable)
+      .set({
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)))
       .returning({
         id: ticketsTable.id,
         title: ticketsTable.title,
@@ -677,6 +726,19 @@ export const deleteTicket = async (req: Request, res: Response) => {
         message: "Failed to delete ticket",
       });
     }
+
+    await logAuditEventFromRequest(req, {
+      action: "ticket_deleted",
+      entityType: "ticket",
+      entityId: ticket.id,
+      ticketId: ticket.id,
+      targetUserId: ticket.createdBy,
+      description: "Ticket deleted",
+      metadata: {
+        title: ticket.title,
+        status: ticket.status,
+      },
+    });
 
     try {
       await deleteTicketVector(deletedTicket.id);
@@ -737,7 +799,7 @@ export const editTicket = async (req: Request, res: Response) => {
         assignedTo: ticketsTable.assignedTo,
       })
       .from(ticketsTable)
-      .where(eq(ticketsTable.id, ticketId));
+      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -833,6 +895,50 @@ export const editTicket = async (req: Request, res: Response) => {
     if (!updatedTicket) {
       return sendError(res, 500, {
         message: "Failed to update ticket",
+      });
+    }
+
+    await logAuditEventFromRequest(req, {
+      action: "ticket_updated",
+      entityType: "ticket",
+      entityId: updatedTicket.id,
+      ticketId: updatedTicket.id,
+      targetUserId: updatedTicket.createdBy,
+      description: "Ticket updated",
+      metadata: {
+        changedFields: Object.keys(updateData).filter((field) => field !== "updatedAt"),
+      },
+    });
+
+    if (typeof assignedTo !== "undefined" && assignedTo !== ticket.assignedTo) {
+      await logAuditEventFromRequest(req, {
+        action: "ticket_assigned",
+        entityType: "ticket",
+        entityId: updatedTicket.id,
+        ticketId: updatedTicket.id,
+        assignedFromUserId: ticket.assignedTo,
+        assignedToUserId: assignedTo,
+        targetUserId: assignedTo,
+        description: "Ticket assignee updated",
+        metadata: {
+          previousAssignedTo: ticket.assignedTo,
+          newAssignedTo: assignedTo,
+        },
+      });
+    }
+
+    if (status === "completed" && updatedTicket.status === "completed") {
+      await logAuditEventFromRequest(req, {
+        action: "ticket_completed",
+        entityType: "ticket",
+        entityId: updatedTicket.id,
+        ticketId: updatedTicket.id,
+        targetUserId: updatedTicket.createdBy,
+        description: "Ticket marked as completed via edit",
+        metadata: {
+          previousStatus: ticket.status,
+          newStatus: updatedTicket.status,
+        },
       });
     }
 
