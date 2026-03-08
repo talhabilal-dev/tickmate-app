@@ -43,6 +43,13 @@
       "when": 1772952047879,
       "tag": "0005_tearful_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772957188343,
+      "tag": "0006_brave_colonel_america",
+      "breakpoints": true
     }
   ]
 }

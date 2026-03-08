@@ -25,6 +25,7 @@ export const onTicketCreated = inngest.createFunction(
             title: ticketsTable.title,
             description: ticketsTable.description,
             relatedSkills: ticketsTable.relatedSkills,
+            createdBy: ticketsTable.createdBy,
           })
           .from(ticketsTable)
           .where(eq(ticketsTable.id, parsedTicketId));
@@ -46,7 +47,12 @@ export const onTicketCreated = inngest.createFunction(
           .where(eq(ticketsTable.id, ticket.id));
       });
 
-      const aiResponse = await analyzeTicket(ticket);
+      const aiResponse = await analyzeTicket({
+        title: ticket.title,
+        description: ticket.description,
+        userId: ticket.createdBy,
+        ticketId: ticket.id,
+      });
 
       const relatedSkills = await step.run("ai-processing", async () => {
         let skills: string[] = [];

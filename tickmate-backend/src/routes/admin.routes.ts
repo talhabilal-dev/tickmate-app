@@ -6,6 +6,7 @@ import {
   createUserByAdmin,
   getAllUsers,
   getAllTickets,
+  getAiUsage,
   getAdminDashboard,
   updateUser,
   deleteUser,
@@ -20,6 +21,7 @@ router.post("/create-user", verifyAdminToken, createUserByAdmin);
 router.post("/create-ticket", verifyAdminToken, createTicketByAdmin);
 router.get("/users", verifyAdminToken, getAllUsers);
 router.get("/tickets", verifyAdminToken, getAllTickets);
+router.get("/ai-usage", verifyAdminToken, getAiUsage);
 router.get("/dashboard", verifyAdminToken, getAdminDashboard);
 router.put("/update-user", verifyAdminToken, updateUser);
 router.delete("/delete-user", verifyAdminToken, deleteUser);

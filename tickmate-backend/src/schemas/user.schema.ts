@@ -55,35 +55,6 @@ export const adminUpdateUserSchema = zod
     .object({
         _id: idLikeSchema.optional(),
         userId: idLikeSchema.optional(),
-        name: zod.string().min(1, "Name cannot be empty").optional(),
-        username: zod.string().min(3, "Username must be at least 3 characters long").optional(),
-        email: zod.string().email("Invalid email address").optional(),
-        skills: zod.array(zod.string()).optional(),
         role: zod.enum(["user", "moderator", "admin"]).optional(),
         isActive: zod.boolean().optional(),
     })
-    .superRefine((data, ctx) => {
-        if (typeof data._id === "undefined" && typeof data.userId === "undefined") {
-            ctx.addIssue({
-                code: zod.ZodIssueCode.custom,
-                path: ["userId"],
-                message: "_id or userId is required",
-            });
-        }
-
-        const hasUpdateField =
-            typeof data.name !== "undefined" ||
-            typeof data.username !== "undefined" ||
-            typeof data.email !== "undefined" ||
-            typeof data.skills !== "undefined" ||
-            typeof data.role !== "undefined" ||
-            typeof data.isActive !== "undefined";
-
-        if (!hasUpdateField) {
-            ctx.addIssue({
-                code: zod.ZodIssueCode.custom,
-                path: ["name"],
-                message: "At least one updatable field is required",
-            });
-        }
-    });

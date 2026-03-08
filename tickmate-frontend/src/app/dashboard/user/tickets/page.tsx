@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
 import { EditTicketDialog } from '@/components/tickets/edit-ticket-dialog'
@@ -13,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { authApi, getApiErrorMessage, ticketApi, userApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { TicketResponse } from '@/lib/schemas'
-import { AlertCircle, LogOut, Search } from 'lucide-react'
+import { AlertCircle, LogOut } from 'lucide-react'
 
 export default function UserTicketsPage() {
   const router = useRouter()
@@ -27,16 +26,6 @@ export default function UserTicketsPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [completingTicketId, setCompletingTicketId] = useState<number | null>(null)
   const [replyingTicketId, setReplyingTicketId] = useState<number | null>(null)
-  const [searchDescription, setSearchDescription] = useState('')
-  const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([])
-  const [isSearchingSimilar, setIsSearchingSimilar] = useState(false)
-  const [prefillTicket, setPrefillTicket] = useState<{
-    title?: string
-    description?: string
-    category?: string
-    relatedSkills?: string[]
-  } | null>(null)
-  const [prefillNonce, setPrefillNonce] = useState(0)
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -168,51 +157,6 @@ export default function UserTicketsPage() {
     }
   }
 
-  const handleSearchByDescription = async () => {
-    if (!searchDescription.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a description to search similar tickets',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    try {
-      setIsSearchingSimilar(true)
-      const queryText = searchDescription.trim()
-      const response = await ticketApi.searchSimilarTickets({
-        title: queryText.slice(0, 80),
-        description: queryText,
-        limit: 5,
-      })
-      setSimilarTickets(Array.isArray(response.tickets) ? response.tickets : [])
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSearchingSimilar(false)
-    }
-  }
-
-  const handleClearSimilarSearch = () => {
-    setSearchDescription('')
-    setSimilarTickets([])
-  }
-
-  const handleCreateFromSimilar = (ticket: TicketResponse) => {
-    setPrefillTicket({
-      title: ticket.title,
-      description: ticket.description,
-      category: ticket.category,
-      relatedSkills: ticket.relatedSkills,
-    })
-    setPrefillNonce((value) => value + 1)
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 flex items-center justify-center">
@@ -261,65 +205,11 @@ export default function UserTicketsPage() {
               {isModerator && <TabsTrigger value="assigned">Assigned Tickets</TabsTrigger>}
             </TabsList>
             {activeTab === 'my' && (
-              <CreateTicketDialog
-                onTicketCreated={handleTicketCreated}
-                triggerClassName="w-full sm:w-auto"
-                prefill={prefillTicket ?? undefined}
-                prefillNonce={prefillNonce}
-              />
+              <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
             )}
           </div>
 
           <TabsContent value="my" className="space-y-6">
-            <Card className="border-primary/10">
-              <CardContent className="pt-6 space-y-3">
-                <p className="text-sm font-semibold">Search Similar Tickets By Description</p>
-                <Textarea
-                  placeholder="Describe your issue or question to find related completed public tickets"
-                  value={searchDescription}
-                  onChange={(event) => setSearchDescription(event.target.value)}
-                  rows={3}
-                />
-                <div className="flex gap-2">
-                  <Button onClick={handleSearchByDescription} disabled={isSearchingSimilar} variant="outline">
-                    <Search className="w-4 h-4 mr-2" />
-                    {isSearchingSimilar ? 'Searching...' : 'Find Similar'}
-                  </Button>
-                  <Button variant="ghost" onClick={handleClearSimilarSearch}>
-                    Clear
-                  </Button>
-                </div>
-
-                {similarTickets.length > 0 && (
-                  <div className="space-y-2 border-t pt-3">
-                    <p className="text-sm font-semibold">Similar Tickets</p>
-                    <div className="space-y-2">
-                      {similarTickets.map((ticket) => (
-                        <div key={ticket.id} className="rounded-md border border-primary/10 p-3">
-                          <p className="font-medium">{ticket.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Category: {ticket.category} • Status: {ticket.status}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                            {ticket.description}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="mt-3"
-                            onClick={() => handleCreateFromSimilar(ticket)}
-                          >
-                            Create from this
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {tickets.length === 0 ? (
               <Card className="border-primary/10">
                 <CardContent className="pt-12 pb-12 text-center">

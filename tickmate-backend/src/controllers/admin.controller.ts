@@ -1,6 +1,6 @@
 import db from "../config/db.config.js";
-import { desc, eq, ne } from "drizzle-orm";
-import { usersTable, ticketsTable } from "../models/model.js";
+import { desc, eq, ne, sql } from "drizzle-orm";
+import { aiUsageLogsTable, usersTable, ticketsTable } from "../models/model.js";
 import { sendError, sendSuccess, sendZodValidationError } from "../utils/response.utils.js";
 import type { Request, Response } from "express";
 import { usersListResponseSchema } from "../schemas/user-response.schema.js";
@@ -287,6 +287,99 @@ export const getAllTickets = async (req: Request, res: Response) => {
   }
 };
 
+export const getAiUsage = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return sendError(res, 403, {
+        message: "Forbidden: Admins only",
+      });
+    }
+
+    const parsedLimit = Number(req.query.limit ?? 50);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 200)
+      : 50;
+
+    const rawUserId = req.query.userId;
+    const parsedUserId =
+      typeof rawUserId === "string" && rawUserId.trim() !== ""
+        ? Number(rawUserId)
+        : undefined;
+
+    if (typeof parsedUserId !== "undefined" && (!Number.isInteger(parsedUserId) || parsedUserId <= 0)) {
+      return sendError(res, 400, {
+        message: "userId must be a positive integer",
+      });
+    }
+
+    const usageFilter =
+      typeof parsedUserId === "number"
+        ? eq(aiUsageLogsTable.userId, parsedUserId)
+        : undefined;
+
+    const [summary] = await db
+      .select({
+        totalRequests: sql<number>`count(*)`,
+        totalPromptTokens: sql<number>`coalesce(sum(${aiUsageLogsTable.promptTokens}), 0)`,
+        totalCompletionTokens: sql<number>`coalesce(sum(${aiUsageLogsTable.completionTokens}), 0)`,
+        totalTokens: sql<number>`coalesce(sum(${aiUsageLogsTable.totalTokens}), 0)`,
+        totalCacheHits: sql<number>`coalesce(sum(case when ${aiUsageLogsTable.isCacheHit} then 1 else 0 end), 0)`,
+        totalErrors: sql<number>`coalesce(sum(case when ${aiUsageLogsTable.status} = 'error' then 1 else 0 end), 0)`,
+      })
+      .from(aiUsageLogsTable)
+      .where(usageFilter);
+
+    const logs = await db
+      .select({
+        id: aiUsageLogsTable.id,
+        userId: aiUsageLogsTable.userId,
+        userName: usersTable.name,
+        userEmail: usersTable.email,
+        ticketId: aiUsageLogsTable.ticketId,
+        operation: aiUsageLogsTable.operation,
+        provider: aiUsageLogsTable.provider,
+        modelName: aiUsageLogsTable.modelName,
+        requestId: aiUsageLogsTable.requestId,
+        promptTokens: aiUsageLogsTable.promptTokens,
+        completionTokens: aiUsageLogsTable.completionTokens,
+        totalTokens: aiUsageLogsTable.totalTokens,
+        cachedPromptTokens: aiUsageLogsTable.cachedPromptTokens,
+        isCacheHit: aiUsageLogsTable.isCacheHit,
+        status: aiUsageLogsTable.status,
+        errorMessage: aiUsageLogsTable.errorMessage,
+        metadata: aiUsageLogsTable.metadata,
+        createdAt: aiUsageLogsTable.createdAt,
+      })
+      .from(aiUsageLogsTable)
+      .leftJoin(usersTable, eq(aiUsageLogsTable.userId, usersTable.id))
+      .where(usageFilter)
+      .orderBy(desc(aiUsageLogsTable.createdAt))
+      .limit(limit);
+
+    return sendSuccess(res, 200, {
+      message: "AI usage fetched successfully",
+      summary: {
+        totalRequests: Number(summary?.totalRequests ?? 0),
+        totalPromptTokens: Number(summary?.totalPromptTokens ?? 0),
+        totalCompletionTokens: Number(summary?.totalCompletionTokens ?? 0),
+        totalTokens: Number(summary?.totalTokens ?? 0),
+        totalCacheHits: Number(summary?.totalCacheHits ?? 0),
+        totalErrors: Number(summary?.totalErrors ?? 0),
+      },
+      logs,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Error fetching AI usage:", error.message);
+    } else {
+      console.error("Error fetching AI usage:", error);
+    }
+    return sendError(res, 500, {
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const createTicketByAdmin = async (req: Request, res: Response) => {
   const validation = adminCreateTicketSchema.safeParse(req.body);
 
@@ -505,7 +598,7 @@ export const updateUser = async (req: Request, res: Response) => {
     return sendZodValidationError(res, validation.error.issues);
   }
 
-  const { _id, userId, name, username, email, skills, role, isActive } = validation.data;
+  const { _id, userId, role, isActive } = validation.data;
 
   if (!req.user || req.user.role !== "admin") {
     return sendError(res, 403, {
@@ -533,32 +626,6 @@ export const updateUser = async (req: Request, res: Response) => {
       });
     }
 
-    if (typeof email !== "undefined") {
-      const [emailOwner] = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(eq(usersTable.email, email));
-
-      if (emailOwner && emailOwner.id !== parsedUserId) {
-        return sendError(res, 409, {
-          message: "Email is already in use",
-        });
-      }
-    }
-
-    if (typeof username !== "undefined") {
-      const [usernameOwner] = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(eq(usersTable.username, username));
-
-      if (usernameOwner && usernameOwner.id !== parsedUserId) {
-        return sendError(res, 409, {
-          message: "Username is already in use",
-        });
-      }
-    }
-
     const updateData: Partial<{
       name: string;
       username: string;
@@ -568,10 +635,6 @@ export const updateUser = async (req: Request, res: Response) => {
       isActive: boolean;
     }> = {};
 
-    if (typeof name !== "undefined") updateData.name = name;
-    if (typeof username !== "undefined") updateData.username = username;
-    if (typeof email !== "undefined") updateData.email = email;
-    if (typeof skills !== "undefined") updateData.skills = skills;
     if (typeof role !== "undefined") updateData.role = role;
     if (typeof isActive !== "undefined") updateData.isActive = isActive;
 

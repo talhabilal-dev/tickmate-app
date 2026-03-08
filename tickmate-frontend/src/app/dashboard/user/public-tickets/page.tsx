@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
 import { TicketCard } from '@/components/tickets/ticket-card'
 import { authApi, getApiErrorMessage, ticketApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { TicketResponse } from '@/lib/schemas'
-import { AlertCircle, LogOut } from 'lucide-react'
+import { AlertCircle, LogOut, Search } from 'lucide-react'
 
 export default function PublicTicketsPage() {
   const router = useRouter()
@@ -20,6 +22,16 @@ export default function PublicTicketsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [skillsInput, setSkillsInput] = useState('')
+  const [searchDescription, setSearchDescription] = useState('')
+  const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([])
+  const [isSearchingSimilar, setIsSearchingSimilar] = useState(false)
+  const [prefillTicket, setPrefillTicket] = useState<{
+    title?: string
+    description?: string
+    category?: string
+    relatedSkills?: string[]
+  } | null>(null)
+  const [prefillNonce, setPrefillNonce] = useState(0)
 
   const fetchTickets = async (filters?: { category?: string; skills?: string[] }) => {
     try {
@@ -77,6 +89,58 @@ export default function PublicTicketsPage() {
     fetchTickets()
   }
 
+  const handleSearchByDescription = async () => {
+    if (!searchDescription.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a description to search similar tickets',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsSearchingSimilar(true)
+      const queryText = searchDescription.trim()
+      const response = await ticketApi.searchSimilarTickets({
+        title: queryText.slice(0, 80),
+        description: queryText,
+        limit: 5,
+      })
+      setSimilarTickets(Array.isArray(response.tickets) ? response.tickets : [])
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSearchingSimilar(false)
+    }
+  }
+
+  const handleClearSimilarSearch = () => {
+    setSearchDescription('')
+    setSimilarTickets([])
+  }
+
+  const handleCreateFromSimilar = (ticket: TicketResponse) => {
+    setPrefillTicket({
+      title: ticket.title,
+      description: ticket.description,
+      category: ticket.category,
+      relatedSkills: ticket.relatedSkills,
+    })
+    setPrefillNonce((value) => value + 1)
+  }
+
+  const handleTicketCreated = () => {
+    toast({
+      title: 'Success',
+      description: 'Ticket created from selected template',
+    })
+  }
+
   const handleLogout = async () => {
     try {
       await authApi.logout()
@@ -122,6 +186,63 @@ export default function PublicTicketsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-6">
+        <Card className="border-primary/10">
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold">Search Similar Tickets By Description</p>
+              <CreateTicketDialog
+                onTicketCreated={handleTicketCreated}
+                triggerClassName="w-full sm:w-auto"
+                prefill={prefillTicket ?? undefined}
+                prefillNonce={prefillNonce}
+              />
+            </div>
+            <Textarea
+              placeholder="Describe your issue or question to find related completed public tickets"
+              value={searchDescription}
+              onChange={(event) => setSearchDescription(event.target.value)}
+              rows={3}
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleSearchByDescription} disabled={isSearchingSimilar} variant="outline">
+                <Search className="w-4 h-4 mr-2" />
+                {isSearchingSimilar ? 'Searching...' : 'Find Similar'}
+              </Button>
+              <Button variant="ghost" onClick={handleClearSimilarSearch}>
+                Clear
+              </Button>
+            </div>
+
+            {similarTickets.length > 0 && (
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-sm font-semibold">Similar Tickets</p>
+                <div className="space-y-2">
+                  {similarTickets.map((ticket) => (
+                    <div key={ticket.id} className="rounded-md border border-primary/10 p-3">
+                      <p className="font-medium">{ticket.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Category: {ticket.category} • Status: {ticket.status}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        {ticket.description}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => handleCreateFromSimilar(ticket)}
+                      >
+                        Create from this
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="border-primary/10">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">

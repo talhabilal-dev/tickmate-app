@@ -286,4 +286,103 @@ export const ticketApi = {
   },
 }
 
+type AdminAiUsageLog = {
+  id: number
+  userId: number | null
+  userName: string | null
+  userEmail: string | null
+  ticketId: number | null
+  operation: string
+  provider: string
+  modelName: string
+  requestId: string | null
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  cachedPromptTokens: number
+  isCacheHit: boolean
+  status: string
+  errorMessage: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+}
+
+type AdminAiUsageSummary = {
+  totalRequests: number
+  totalPromptTokens: number
+  totalCompletionTokens: number
+  totalTokens: number
+  totalCacheHits: number
+  totalErrors: number
+}
+
+type GetAdminAiUsageResponse = ApiSuccessResponse & {
+  summary: AdminAiUsageSummary
+  logs: AdminAiUsageLog[]
+}
+
+type AdminUser = {
+  id: number
+  name: string
+  username: string
+  email: string
+  role: 'user' | 'moderator' | 'admin'
+  skills: string[]
+  isActive: boolean
+  loginTime: string | null
+  createdAt: string
+}
+
+type GetAdminUsersResponse = ApiSuccessResponse & {
+  users: AdminUser[]
+}
+
+type UpdateAdminUserResponse = ApiSuccessResponse & {
+  user: AdminUser
+}
+
+export const adminApi = {
+  getUsers: async (): Promise<GetAdminUsersResponse> => {
+    const response = await apiClient.get<GetAdminUsersResponse>('/admin/users')
+    return response.data
+  },
+
+  updateUser: async (data: {
+    userId: number
+    role?: 'user' | 'moderator' | 'admin'
+    isActive?: boolean
+  }): Promise<UpdateAdminUserResponse> => {
+    const response = await apiClient.put<UpdateAdminUserResponse>('/admin/update-user', data)
+    return response.data
+  },
+
+  deleteUser: async (userId: number): Promise<ApiSuccessResponse> => {
+    const response = await apiClient.delete<ApiSuccessResponse>('/admin/delete-user', {
+      data: { userId },
+    })
+    return response.data
+  },
+
+  getAiUsage: async (params?: {
+    userId?: number
+    limit?: number
+  }): Promise<GetAdminAiUsageResponse> => {
+    const query = new URLSearchParams()
+
+    if (typeof params?.userId === 'number') {
+      query.set('userId', String(params.userId))
+    }
+
+    if (typeof params?.limit === 'number') {
+      query.set('limit', String(params.limit))
+    }
+
+    const queryString = query.toString()
+    const endpoint = queryString ? `/admin/ai-usage?${queryString}` : '/admin/ai-usage'
+
+    const response = await apiClient.get<GetAdminAiUsageResponse>(endpoint)
+    return response.data
+  },
+}
+
 export default apiClient

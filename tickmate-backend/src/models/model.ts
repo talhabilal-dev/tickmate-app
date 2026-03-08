@@ -26,6 +26,11 @@ export const magicLinkPurposeEnum = pgEnum("magic_link_purpose", [
     "password_reset",
     "password_change",
 ]);
+export const aiUsageStatusEnum = pgEnum("ai_usage_status", [
+    "success",
+    "error",
+    "cache_hit",
+]);
 
 export const usersTable = pgTable("users", {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -81,6 +86,27 @@ export const magicLinksTable = pgTable("magic_links", {
     purpose: magicLinkPurposeEnum("purpose").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+});
+
+export const aiUsageLogsTable = pgTable("ai_usage_logs", {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer("user_id").references(() => usersTable.id),
+    ticketId: integer("ticket_id").references(() => ticketsTable.id),
+    operation: varchar("operation", { length: 100 }).notNull(),
+    provider: varchar("provider", { length: 50 }).notNull(),
+    modelName: varchar("model_name", { length: 100 }).notNull(),
+    requestId: varchar("request_id", { length: 150 }),
+    promptTokens: integer("prompt_tokens").default(0).notNull(),
+    completionTokens: integer("completion_tokens").default(0).notNull(),
+    totalTokens: integer("total_tokens").default(0).notNull(),
+    cachedPromptTokens: integer("cached_prompt_tokens").default(0).notNull(),
+    isCacheHit: boolean("is_cache_hit").default(false).notNull(),
+    status: aiUsageStatusEnum("status").default("success").notNull(),
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata").$type<Record<string, unknown> | null>(),
     createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
