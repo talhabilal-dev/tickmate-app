@@ -66,7 +66,17 @@ export const authApi = {
   },
 
   verifyEmail: async (token: string) => {
-    const response = await apiClient.post('/auth/verify-email', { token })
+    const response = await apiClient.post('/auth/verify', { token })
+    return response.data
+  },
+
+  forgotPassword: async (data: { email: string }) => {
+    const response = await apiClient.post('/auth/forgot-password', data)
+    return response.data
+  },
+
+  resetPasswordWithToken: async (data: { token: string; newPassword: string }) => {
+    const response = await apiClient.post('/auth/reset-password', data)
     return response.data
   },
 
@@ -97,7 +107,10 @@ export const userApi = {
     currentPassword: string
     newPassword: string
   }) => {
-    const response = await apiClient.post('/user/change-password', data)
+    const response = await apiClient.put('/auth/update-password', {
+      oldPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    })
     return response.data
   },
 

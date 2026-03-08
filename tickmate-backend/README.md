@@ -1,73 +1,28 @@
 # TickMate Backend
 
-A TypeScript + Express backend for a ticketing/support platform with role-based auth, admin operations, async email workflows, and semantic ticket similarity search.
+TypeScript + Express backend for ticket management, role-based authentication, async email workflows, AI-powered ticket analysis, and vector similarity search.
 
-## What This Backend Does
+## Overview
 
-TickMate backend provides:
-- User authentication and profile management
-- Admin-only dashboard and management APIs
-- Ticket lifecycle management (create, assign, reply, update, complete, delete)
-- Email workflows for account verification and password reset (via Inngest + Resend)
-- Semantic search over resolved public tickets using OpenAI embeddings + Qdrant
+This service provides:
 
-The goal is to reduce duplicate tickets and help users find existing solutions before creating a new ticket.
-
-## Core Features
-
-### Authentication & User Management
-- Register with `name`, `username`, `email`, `password`
-- Email verification with magic-link token
-- Login with `identifier` (email or username)
-- Dedicated admin login/logout flow
-- Forgot/reset password flow using magic links
-- Username availability check endpoint
-- Profile update + password change endpoints
-
-### Admin Features
-- Create user directly as admin (`isActive = true`)
-- Create ticket manually as admin and assign it to a **moderator only**
-- View users (excluding admins)
-- View all tickets
-- Dashboard stats
-- Update or delete users
-
-### Ticket Features
-- Create and fetch user tickets
-- Fetch assigned tickets
-- Reply to assigned ticket (moderator/admin constraints)
-- Ticket summary endpoint
-- Edit and delete endpoints
-- Mark ticket as completed
-- Rule enforced: **completed tickets cannot be edited**
-
-### Semantic Similar Ticket Search
-- Endpoint: `POST /api/tickets/similar`
-- Uses OpenAI embedding model: `text-embedding-3-small`
-- Qdrant collection: `tickmate_db`
-- Cosine similarity
-- Only returns tickets that are:
-  - `status = completed`
-  - `isPublic = true`
-- Minimum score threshold configurable via `SIMILAR_TICKET_MIN_SCORE` (default `0.75`)
-
-### Async Workflows (Inngest)
-- User signup verification email
-- Forgot-password reset email
-- Ticket-created async function wiring is present
+- User auth and profile APIs
+- Admin-only management APIs
+- Ticket lifecycle APIs (create, assign, reply, update, complete, soft-delete)
+- Email verification and password reset workflows via Inngest + Resend
+- Similar-ticket search over resolved public tickets using OpenAI embeddings + Qdrant
 
 ## Tech Stack
 
 - Node.js + Express 5
-- TypeScript
-- PostgreSQL
-- Drizzle ORM + Drizzle Kit
+- TypeScript (ESM)
+- PostgreSQL + Drizzle ORM
 - Zod validation
-- JWT + cookie auth
-- Inngest
-- Resend
-- OpenAI embeddings (`@langchain/openai`)
-- Qdrant (`@qdrant/js-client-rest`)
+- JWT auth with HttpOnly cookie
+- Inngest for async jobs
+- Resend for email
+- OpenAI (`gpt-4.1-mini`) for ticket analysis
+- OpenAI embeddings (`text-embedding-3-small`) + Qdrant for similarity search
 
 ## Project Structure
 
@@ -93,130 +48,242 @@ src/
     ticket.schema.ts
     user-response.schema.ts
   utils/
-    vector-db.utils.ts
+    agent.utils.ts
+    audit-log.utils.ts
+    cookie.utils.ts
     magic-link.utils.ts
     mailer.utils.ts
+    response.utils.ts
+    vector-db.utils.ts
   inngest/
     client.ts
     functions/
+public/
+  emails/
+requests/
+  user-routes.http
+  ticket-routes.http
+  admin-routes.http
 ```
 
-## Getting Started
+## Setup
 
-### 1) Install dependencies
+### 1) Install
 
 ```bash
 pnpm install
 ```
 
-### 2) Configure environment
+### 2) Configure `.env`
 
-Create `.env` in `tickmate-backend` (or copy from `.env.example`) and set values.
+Variables used by code:
 
-Required/important variables:
+Required in normal usage:
 
-- `PORT`
 - `DATABASE_URL`
 - `JWT_SECRET`
-- `INNGEST_EVENT_KEY`
-- `INNGEST_SIGNING_KEY`
-- `RESEND_API_KEY`
-- `EMAIL_FROM`
-- `APP_URL`
-- `NODE_ENV`
-- `COOKIE_DOMAIN`
 - `OPENAI_API_KEY`
 - `QDRANT_URL`
-- `QDRANT_API_KEY` (required if your Qdrant instance is secured)
-- `SIMILAR_TICKET_MIN_SCORE` (optional, default: `0.75`)
+- `QDRANT_API_KEY`
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
 
-### 3) Database migration
+Optional:
+
+- `PORT` (default: `3000`)
+- `NODE_ENV`
+- `APP_URL` (used for magic links and CORS allowlist)
+- `COOKIE_DOMAIN` (normalized to host-only)
+- `INNGEST_EVENT_KEY`
+- `INNGEST_SIGNING_KEY`
+- `GEMINI_API_KEY` (currently defined in config; analysis uses OpenAI model)
+- `SIMILAR_TICKET_MIN_SCORE` (default: `0.75`)
+
+### 3) Database
 
 ```bash
 pnpm drizzle:generate
 pnpm drizzle:migrate
 ```
 
-### 4) Run in development
+### 4) Run
 
 ```bash
 pnpm dev
 ```
 
-Server starts at `http://localhost:3000` by default.
+Default URL: `http://localhost:3000`
 
 ## Scripts
 
-- `pnpm dev` - run dev server with watch mode
+- `pnpm dev` - run with tsx watch
 - `pnpm build` - compile TypeScript
 - `pnpm start` - run compiled server
-- `pnpm drizzle:generate` - generate SQL from schema changes
-- `pnpm drizzle:migrate` - apply migrations
-- `pnpm drizzle:push` - push schema directly
+- `pnpm drizzle:generate` - generate migrations
+- `pnpm drizzle:migrate` - run migrations
+- `pnpm drizzle:push` - push schema changes directly
+
+## Runtime Notes
+
+### CORS
+
+Allowed origins include:
+
+- `http://localhost:3000`
+- `http://127.0.0.1:3000`
+- `http://localhost:3001`
+- `http://127.0.0.1:3001`
+- `APP_URL` if provided
+
+Credentials are enabled and preflight is handled.
+
+### Auth and Cookies
+
+- JWT is accepted from `token` cookie or `Authorization: Bearer <token>`.
+- Cookie is `httpOnly`, `path=/`, and:
+- `secure: true` + `sameSite: none` in production
+- `secure: false` + `sameSite: lax` in non-production
+- User login token expiry: `1d`
+- Admin login token expiry: `12h`
+
+## Inngest Functions
+
+Served at `/api/inngest` with these registered functions:
+
+- `on-user-signup` (event: `user/signup`, retries: 3)
+- `on-user-forgot-password` (event: `user/forgot-password`, retries: 3)
+- `on-ticket-created` (event: `ticket/created`, retries: 2)
+
+### Magic Link Paths
+
+- Verification link path: `/auth/verify-email?token=...`
+- Password reset link path: `/auth/reset-password?token=...`
 
 ## API Base Paths
 
-- Auth routes: `/api/auth`
-- Ticket routes: `/api/tickets`
-- Admin routes: `/api/admin`
-- Inngest endpoint: `/api/inngest`
+- Auth: `/api/auth`
+- Tickets: `/api/tickets`
+- Admin: `/api/admin`
 
-## Route Summary
+## API Reference
 
-### Auth (`/api/auth`)
-- `POST /register`
-- `POST /verify`
-- `POST /login`
-- `POST /logout`
-- `POST /forgot-password`
-- `POST /reset-password`
-- `GET /check-username`
-- `GET /profile`
-- `PATCH /profile`
-- `PUT /update-password`
+### Auth Routes (`/api/auth`)
 
-### Tickets (`/api/tickets`)
-- `GET /`
-- `POST /similar`
-- `POST /`
-- `PUT /status/:id`
-- `GET /get-assigned`
-- `PUT /ticket-reply`
-- `GET /tickets-summary`
-- `DELETE /delete-ticket`
-- `PUT /edit-ticket`
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `POST` | `/register` | No | Body: `name`, `username`, `email`, `password`, `skills?` |
+| `POST` | `/verify` | No | Body: `token` |
+| `POST` | `/login` | No | Body: `identifier` (email or username), `password` |
+| `POST` | `/logout` | Yes | Clears auth cookie |
+| `POST` | `/forgot-password` | No | Body: `email`; always returns generic success message |
+| `POST` | `/reset-password` | No | Body: `token`, `newPassword` |
+| `GET` | `/check-username/:username` | No | Username availability |
+| `POST` | `/resend-verification-email` | No | Body: `email`; generic success response |
+| `GET` | `/profile` | Yes | Current user profile |
+| `PATCH` | `/profile` | Yes | Body: `name?`, `username?`, `skills?`; email change blocked |
+| `PUT` | `/update-password` | Yes | Body: `oldPassword` (or `currentPassword`), `newPassword` |
+| `DELETE` | `/profile` | Yes | Delete own account |
 
-### Admin (`/api/admin`)
-- `POST /login`
-- `POST /logout`
-- `POST /create-user`
-- `POST /create-ticket`
-- `GET /users`
-- `GET /tickets`
-- `GET /dashboard`
-- `PUT /update-user`
-- `DELETE /delete-user`
+### Ticket Routes (`/api/tickets`)
 
-## Recommended Frontend Flow for Ticket Creation
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `GET` | `/` | Yes | Get current user's tickets (excluding soft-deleted) |
+| `GET` | `/public-completed` | Yes | Query: `category?`, `skills?` (comma-separated) |
+| `POST` | `/similar` | Yes | Body: `title`, `description`, `category?`, `limit?` |
+| `POST` | `/` | Yes | Create ticket and trigger async analysis/assignment |
+| `PUT` | `/status/:id` | Yes | Mark as completed (creator only) |
+| `GET` | `/get-assigned` | Yes | Tickets assigned to current user |
+| `PUT` | `/ticket-reply` | Yes | Moderator/admin only; body: `ticketId`, `message` |
+| `GET` | `/tickets-summary` | Yes | Current + previous 7-day summary |
+| `DELETE` | `/delete-ticket` | Yes | Body: `ticketId`; soft-delete |
+| `PUT` | `/edit-ticket` | Yes | Update fields; completed tickets cannot be edited |
 
-1. Call `POST /api/tickets/similar` with title/description while user types.
-2. Show relevant resolved public tickets.
-3. If user gets help, stop there (do not call create-ticket).
-4. If user still needs support, call `POST /api/tickets/`.
+### Admin Routes (`/api/admin`)
 
-This helps reduce duplicates and unnecessary processing.
+All routes except `/login` require admin auth.
 
-## Test Request Files
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `POST` | `/login` | No | Identifier must match admin email |
+| `POST` | `/logout` | Admin | Clear admin session |
+| `POST` | `/create-user` | Admin | Create active user directly |
+| `POST` | `/create-ticket` | Admin | Assign to moderator only |
+| `GET` | `/users` | Admin | Lists non-admin users |
+| `GET` | `/tickets` | Admin | Lists non-deleted tickets |
+| `GET` | `/ai-usage` | Admin | Query: `limit?`, `userId?` |
+| `GET` | `/audit-logs` | Admin | Query: `page?`, `pageSize?` |
+| `GET` | `/dashboard` | Admin | Aggregate admin stats |
+| `PUT` | `/update-user` | Admin | Update role/active/profile fields |
+| `DELETE` | `/delete-user` | Admin | Body includes user id |
+| `PUT` | `/tickets/toggle-status` | Admin | Change ticket status |
+| `DELETE` | `/tickets/delete-ticket` | Admin | Admin ticket delete |
 
-Use the provided REST Client files in `requests/`:
+## Ticket Similarity and Vector Indexing
+
+- Qdrant collection: `tickmate_db`
+- Distance: cosine
+- Embedding model: `text-embedding-3-small`
+- Only completed + public tickets are indexed/searched
+- Minimum score controlled by `SIMILAR_TICKET_MIN_SCORE` (default `0.75`)
+
+## Behavioral Rules
+
+- Unverified users cannot log in.
+- Username availability is path-param based: `/check-username/:username`.
+- Password reset requires magic-link token and does not require old password.
+- Change password (`/update-password`) requires authenticated user.
+- Ticket replies are restricted to moderator/admin, and ticket must not be completed.
+- Ticket edits are blocked when status is `completed`.
+- Ticket deletion is soft-delete using `deletedAt`.
+
+## Quick API Examples
+
+Verify email:
+
+```http
+POST /api/auth/verify
+Content-Type: application/json
+
+{
+  "token": "<jwt-token>"
+}
+```
+
+Reset password:
+
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "<jwt-token>",
+  "newPassword": "NewPass123"
+}
+```
+
+Change password (logged in):
+
+```http
+PUT /api/auth/update-password
+Content-Type: application/json
+
+{
+  "oldPassword": "OldPass123",
+  "newPassword": "NewPass123"
+}
+```
+
+## Request Collections
+
+Use REST client files under `requests/`:
+
 - `requests/user-routes.http`
 - `requests/ticket-routes.http`
 - `requests/admin-routes.http`
 
-These are ready for VS Code REST Client extension.
-
 ## Notes
 
-- Admin routes are protected with dedicated `verifyAdminToken` middleware.
-- Semantic search indexes in Qdrant are managed by backend utility code.
-- Ticket vectors are stored/updated only when ticket is completed and public.
+- Vector sync failures are logged and do not block ticket completion/delete responses.
+- Audit logs are recorded for key auth, user, and ticket actions.
+- Backend currently uses OpenAI in `agent.utils.ts` for ticket analysis.

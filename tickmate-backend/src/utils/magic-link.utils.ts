@@ -20,7 +20,21 @@ type GenerateMagicLinkResult = {
     expiresAt: Date;
 };
 
-const MAGIC_LINK_PATH = "/verify-email";
+const getMagicLinkPath = (purpose: MagicLinkPurpose): string => {
+    if (purpose === "email_verification") {
+        return "/auth/verify-email";
+    }
+
+    if (purpose === "password_reset") {
+        return "/auth/reset-password";
+    }
+
+    if (purpose === "password_change") {
+        return "/auth/reset-password";
+    }
+
+    return "/auth/verify-email";
+};
 
 export const generateMagicLink = async ({
     userId,
@@ -56,7 +70,7 @@ export const generateMagicLink = async ({
     );
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-    const linkUrl = new URL(MAGIC_LINK_PATH, baseUrl);
+    const linkUrl = new URL(getMagicLinkPath(purpose), baseUrl);
     linkUrl.searchParams.set("token", rawToken);
 
     return {

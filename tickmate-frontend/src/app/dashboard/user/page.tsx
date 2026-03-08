@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { authApi, getApiErrorMessage, ticketApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { LogOut, TrendingUp, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
@@ -108,8 +109,11 @@ export default function UserDashboard() {
 
       <header className="border-b border-primary/10 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between relative z-10">
-          <div>
-            <h1 className="text-2xl font-bold text-gradient-ai">User Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-2xl font-bold text-gradient-ai">User Dashboard</h1>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />

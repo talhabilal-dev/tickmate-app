@@ -145,42 +145,64 @@ export default function AdminLogsPage() {
             ) : logs.length === 0 ? (
               <p className="text-sm text-muted-foreground">No logs found.</p>
             ) : (
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>By</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Assignment</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead className="w-[16%]">Time</TableHead>
+                    <TableHead className="w-[10%]">Action</TableHead>
+                    <TableHead className="w-[8%]">Entity</TableHead>
+                    <TableHead className="w-[13%]">By</TableHead>
+                    <TableHead className="w-[17%]">Target</TableHead>
+                    <TableHead className="w-[17%]">Assignment</TableHead>
+                    <TableHead className="w-[19%]">Description</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
-                      <TableCell className="font-medium">{log.action}</TableCell>
-                      <TableCell>
+                      <TableCell className="align-top">
+                        <div className="leading-tight">
+                          <p className="whitespace-nowrap">{new Date(log.createdAt).toLocaleDateString()}</p>
+                          <p className="whitespace-nowrap text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleTimeString()}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-normal wrap-break-word align-top">
+                        <p className="line-clamp-2" title={log.action}>{log.action}</p>
+                      </TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
                         {log.entityType}
                         {log.entityId ? ` #${log.entityId}` : ''}
                       </TableCell>
-                      <TableCell>
-                        {log.actorName ?? 'System'}
-                        {log.actorUserId ? ` (ID ${log.actorUserId})` : ''}
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p className="line-clamp-2" title={`${log.actorName ?? 'System'}${log.actorUserId ? ` (ID ${log.actorUserId})` : ''}`}>
+                          {log.actorName ?? 'System'}
+                          {log.actorUserId ? ` (ID ${log.actorUserId})` : ''}
+                        </p>
                       </TableCell>
-                      <TableCell>
-                        {log.targetName ?? 'N/A'}
-                        {log.targetUserId ? ` (ID ${log.targetUserId})` : ''}
-                        {log.ticketId ? ` | Ticket #${log.ticketId}` : ''}
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p className="line-clamp-2" title={`${log.targetName ?? 'N/A'}${log.targetUserId ? ` (ID ${log.targetUserId})` : ''}${log.ticketId ? ` | Ticket #${log.ticketId}` : ''}`}>
+                          {log.targetName ?? 'N/A'}
+                          {log.targetUserId ? ` (ID ${log.targetUserId})` : ''}
+                          {log.ticketId ? ` | Ticket #${log.ticketId}` : ''}
+                        </p>
                       </TableCell>
-                      <TableCell>
-                        {log.assignedFromUserId || log.assignedToUserId
-                          ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
-                          : 'N/A'}
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p
+                          className="line-clamp-2"
+                          title={
+                            log.assignedFromUserId || log.assignedToUserId
+                              ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
+                              : 'N/A'
+                          }
+                        >
+                          {log.assignedFromUserId || log.assignedToUserId
+                            ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
+                            : 'N/A'}
+                        </p>
                       </TableCell>
-                      <TableCell className="max-w-[320px] truncate">{log.description ?? 'N/A'}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p className="line-clamp-2" title={log.description ?? 'N/A'}>{log.description ?? 'N/A'}</p>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

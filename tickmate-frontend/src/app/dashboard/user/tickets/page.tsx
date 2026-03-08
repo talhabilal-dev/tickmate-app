@@ -9,6 +9,7 @@ import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
 import { EditTicketDialog } from '@/components/tickets/edit-ticket-dialog'
 import { TicketCard } from '@/components/tickets/ticket-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { authApi, getApiErrorMessage, ticketApi, userApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { TicketResponse } from '@/lib/schemas'
@@ -175,8 +176,11 @@ export default function UserTicketsPage() {
 
       <header className="border-b border-primary/10 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between relative z-10">
-          <div>
-            <h1 className="text-2xl font-bold text-gradient-ai">My Tickets</h1>
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-2xl font-bold text-gradient-ai">My Tickets</h1>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />

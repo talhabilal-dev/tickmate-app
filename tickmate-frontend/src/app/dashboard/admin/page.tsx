@@ -8,7 +8,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { adminApi, authApi, getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Users, BarChart3, Shield, Database, AlertCircle, Ticket } from 'lucide-react';
+import { LogOut, Users, BarChart3, AlertCircle, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminDashboard() {
@@ -139,24 +139,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Security Card */}
-          <Card className="border-primary/20 shadow-md ai-glow hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Security</CardTitle>
-                <div className="w-10 h-10 rounded-full gradient-ai-diagonal flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-primary-foreground" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">Manage security settings</p>
-              <Button className="w-full ai-button" size="sm">
-                Security Settings
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Ticket Management Card */}
           <Card className="border-primary/20 shadow-md ai-glow hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
@@ -175,24 +157,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Database Card */}
-          <Card className="border-primary/20 shadow-md ai-glow hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Database</CardTitle>
-                <div className="w-10 h-10 rounded-full bg-linear-to-r from-accent to-secondary flex items-center justify-center">
-                  <Database className="w-5 h-5 text-primary-foreground" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">Manage database and backups</p>
-              <Button className="w-full ai-button" size="sm">
-                Database Management
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* System Logs Card */}
           <Card className="border-primary/20 shadow-md ai-glow hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
@@ -205,8 +169,8 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">View system logs and events</p>
-              <Button className="w-full ai-button" size="sm">
-                View Logs
+              <Button className="w-full ai-button" size="sm" asChild>
+                <Link href="/dashboard/admin/logs">View Logs</Link>
               </Button>
             </CardContent>
           </Card>

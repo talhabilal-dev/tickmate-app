@@ -9,6 +9,7 @@ import { ProfileCard } from '@/components/profile/profile-card'
 import { EditProfileDialog } from '@/components/profile/edit-profile-dialog'
 import { ChangePasswordDialog } from '@/components/profile/change-password-dialog'
 import { DeleteAccountDialog } from '@/components/profile/delete-account-dialog'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { userApi, authApi, getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { UserResponse } from '@/lib/schemas'
@@ -95,8 +96,11 @@ export default function UserProfilePage() {
 
       <header className="border-b border-primary/10 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between relative z-10">
-          <div>
-            <h1 className="text-2xl font-bold text-gradient-ai">Profile</h1>
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
+              <h1 className="text-2xl font-bold text-gradient-ai">Profile</h1>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />

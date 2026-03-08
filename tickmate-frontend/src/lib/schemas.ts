@@ -37,6 +37,38 @@ export const verifyEmailSchema = z.object({
 
 export type VerifyEmailData = z.infer<typeof verifyEmailSchema>
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+})
+
+export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>
+
+const resetPasswordFieldRules = {
+  newPassword: z.string()
+    .min(6, 'Password must be at least 6 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  confirmPassword: z.string(),
+}
+
+export const resetPasswordFormSchema = z.object(resetPasswordFieldRules).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordFormSchema>
+
+export const resetPasswordWithTokenSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  ...resetPasswordFieldRules,
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
+export type ResetPasswordWithTokenData = z.infer<typeof resetPasswordWithTokenSchema>
+
 export const checkUsernameSchema = z.object({
   username: z.string()
     .min(3, 'Username must be at least 3 characters')

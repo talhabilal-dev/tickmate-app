@@ -516,14 +516,22 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const changePassword = async (req: Request, res: Response) => {
   try {
-    const { oldPassword, newPassword } = req.body;
+    const { oldPassword, currentPassword, newPassword } = req.body as {
+      oldPassword?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    const effectiveOldPassword = oldPassword ?? currentPassword;
+
+    if (!effectiveOldPassword || !newPassword) {
+      return sendError(res, 400, {
+        message: "oldPassword and newPassword are required",
+      });
+    }
 
     if (!req.user?.userId) {
       return sendError(res, 401, { message: "Unauthorized" });
-    }
-
-    if (req.user.role !== "user") {
-      return sendError(res, 403, { message: "Forbidden" });
     }
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, Number(req.user.userId)));
@@ -532,14 +540,25 @@ export const changePassword = async (req: Request, res: Response) => {
       return sendError(res, 404, { message: "Failed to get user" });
     }
 
-    const passwordMatch = await argon2.verify(user.password, oldPassword);
+    const passwordMatch = await argon2.verify(user.password, effectiveOldPassword);
 
     if (!passwordMatch) {
       return sendError(res, 401, { message: "Invalid old password" });
     }
 
     const hashedPassword = await argon2.hash(newPassword);
-    await db.update(usersTable).set({ password: hashedPassword }).where(eq(usersTable.id, Number(req.user.userId)));
+
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set({ password: hashedPassword })
+      .where(eq(usersTable.id, Number(req.user.userId)))
+      .returning({ id: usersTable.id });
+
+    if (!updatedUser) {
+      return sendError(res, 500, {
+        message: "Failed to update password",
+      });
+    }
 
     return sendSuccess(res, 200, {
       message: "Password changed successfully",
@@ -645,7 +664,18 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     const hashedPassword = await argon2.hash(newPassword);
 
-    await db.update(usersTable).set({ password: hashedPassword }).where(eq(usersTable.id, userId));
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set({ password: hashedPassword })
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id });
+
+    if (!updatedUser) {
+      return sendError(res, 404, {
+        message: "User not found",
+      });
+    }
+
     await db.delete(magicLinksTable).where(eq(magicLinksTable.id, resetRecord.id));
 
     return sendSuccess(res, 200, {

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Ticket, UserCircle, Sparkles, Globe } from 'lucide-react'
 import {
   Sidebar,
@@ -39,6 +40,16 @@ const mainNavItems = [
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
+
+  const isItemActive = (href: string) => {
+    if (href === '/dashboard/user') {
+      return pathname === href
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -55,7 +66,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isItemActive(item.href)}>
                     <Link href={item.href}>
                       <item.icon />
                       <span>{item.title}</span>
