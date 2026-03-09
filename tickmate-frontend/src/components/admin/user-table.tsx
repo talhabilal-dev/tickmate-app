@@ -75,13 +75,13 @@ export function UsersTable({ users, onUserUpdated, onUserDeleted }: UsersTablePr
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+        return 'bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-300'
       case 'moderator':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+        return 'bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-300'
       case 'user':
-        return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+        return 'bg-slate-500/15 text-slate-700 border-slate-500/30 dark:text-slate-300'
       default:
-        return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+        return 'bg-slate-500/15 text-slate-700 border-slate-500/30 dark:text-slate-300'
     }
   }
 
@@ -104,15 +104,22 @@ export function UsersTable({ users, onUserUpdated, onUserDeleted }: UsersTablePr
             {users.map((user) => (
               <TableRow key={user.id} className='border-primary/10 hover:bg-muted/30'>
                 <TableCell className='font-medium'>{user.name}</TableCell>
-                <TableCell className='text-muted-foreground'>{user.email}</TableCell>
-                <TableCell className='text-muted-foreground'>{user.username}</TableCell>
+                <TableCell className='text-foreground/75'>{user.email}</TableCell>
+                <TableCell className='text-foreground/75'>{user.username}</TableCell>
                 <TableCell>
                   <Badge variant='outline' className={getRoleBadgeColor(user.role)}>
                     {user.role}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant='outline' className={user.isActive ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}>
+                  <Badge
+                    variant='outline'
+                    className={
+                      user.isActive
+                        ? 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-300'
+                        : 'bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-300'
+                    }
+                  >
                     {user.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>

@@ -5,6 +5,7 @@ import analyzeTicket from "../../utils/agent.utils.js";
 import db from "../../config/db.config.js";
 import { ticketsTable, usersTable } from "../../models/model.js";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
+import { logAuditEvent } from "../../utils/audit-log.utils.js";
 
 export const onTicketCreated = inngest.createFunction(
   { id: "on-ticket-created", retries: 2 },
@@ -26,6 +27,7 @@ export const onTicketCreated = inngest.createFunction(
             description: ticketsTable.description,
             relatedSkills: ticketsTable.relatedSkills,
             createdBy: ticketsTable.createdBy,
+            assignedTo: ticketsTable.assignedTo,
           })
           .from(ticketsTable)
           .where(eq(ticketsTable.id, parsedTicketId));
@@ -136,6 +138,23 @@ export const onTicketCreated = inngest.createFunction(
             updatedAt: new Date(),
           })
           .where(eq(ticketsTable.id, ticket.id));
+
+        if ((ticket.assignedTo ?? null) !== (user?.id ?? null)) {
+          await logAuditEvent({
+            action: "ticket_assigned",
+            entityType: "ticket",
+            entityId: ticket.id,
+            ticketId: ticket.id,
+            targetUserId: user?.id ?? null,
+            assignedFromUserId: ticket.assignedTo ?? null,
+            assignedToUserId: user?.id ?? null,
+            description: "Ticket assigned by automation",
+            metadata: {
+              assignedBy: "system",
+              matchedSkills: relatedSkills,
+            },
+          });
+        }
 
         return user;
       });

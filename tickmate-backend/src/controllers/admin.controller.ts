@@ -1,5 +1,5 @@
 import db from "../config/db.config.js";
-import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, ne, sql } from "drizzle-orm";
 import { aiUsageLogsTable, auditLogsTable, usersTable, ticketsTable } from "../models/model.js";
 import { sendError, sendSuccess, sendZodValidationError } from "../utils/response.utils.js";
 import type { Request, Response } from "express";
@@ -313,15 +313,89 @@ export const getAllTickets = async (req: Request, res: Response) => {
       });
     }
 
+    const parsedPage = Number(req.query.page ?? 1);
+    const parsedPageSize = Number(req.query.pageSize ?? 10);
+
+    const page = Number.isFinite(parsedPage) ? Math.max(1, Math.floor(parsedPage)) : 1;
+    const pageSize = Number.isFinite(parsedPageSize)
+      ? Math.min(100, Math.max(5, Math.floor(parsedPageSize)))
+      : 10;
+
+    const rawSearch = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const rawCategory = typeof req.query.category === "string" ? req.query.category.trim() : "";
+    const rawStatus = typeof req.query.status === "string" ? req.query.status.trim() : "";
+    const rawPriority = typeof req.query.priority === "string" ? req.query.priority.trim() : "";
+
+    const allowedStatuses = ["pending", "in_progress", "completed"] as const;
+    const allowedPriorities = ["low", "medium", "high"] as const;
+
+    if (rawStatus && !allowedStatuses.includes(rawStatus as (typeof allowedStatuses)[number])) {
+      return sendError(res, 400, {
+        message: "Invalid status filter",
+      });
+    }
+
+    if (rawPriority && !allowedPriorities.includes(rawPriority as (typeof allowedPriorities)[number])) {
+      return sendError(res, 400, {
+        message: "Invalid priority filter",
+      });
+    }
+
+    const conditions = [isNull(ticketsTable.deletedAt)];
+
+    if (rawStatus) {
+      conditions.push(eq(ticketsTable.status, rawStatus as (typeof allowedStatuses)[number]));
+    }
+
+    if (rawPriority) {
+      conditions.push(eq(ticketsTable.priority, rawPriority as (typeof allowedPriorities)[number]));
+    }
+
+    if (rawCategory) {
+      conditions.push(ilike(ticketsTable.category, `%${rawCategory}%`));
+    }
+
+    if (rawSearch) {
+      conditions.push(
+        sql`(
+          ${ticketsTable.title} ilike ${`%${rawSearch}%`}
+          or ${ticketsTable.description} ilike ${`%${rawSearch}%`}
+          or ${ticketsTable.category} ilike ${`%${rawSearch}%`}
+        )`
+      );
+    }
+
+    const whereClause = and(...conditions);
+
+    const [countRow] = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(ticketsTable)
+      .where(whereClause);
+
+    const total = Number(countRow?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const currentPage = Math.min(page, totalPages);
+    const offset = (currentPage - 1) * pageSize;
+
     const tickets = await db
       .select()
       .from(ticketsTable)
-      .where(isNull(ticketsTable.deletedAt))
-      .orderBy(desc(ticketsTable.createdAt));
+      .where(whereClause)
+      .orderBy(desc(ticketsTable.createdAt))
+      .limit(pageSize)
+      .offset(offset);
 
     return sendSuccess(res, 200, {
       message: "Tickets fetched successfully",
       tickets,
+      pagination: {
+        page: currentPage,
+        pageSize,
+        total,
+        totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      },
     });
   } catch (error) {
     if (error instanceof Error) {

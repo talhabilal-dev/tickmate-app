@@ -368,8 +368,27 @@ type AdminTicket = TicketResponse & {
   }>
 }
 
+type AdminTicketsPagination = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+type AdminTicketFilters = {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: 'pending' | 'in_progress' | 'completed'
+  priority?: 'low' | 'medium' | 'high'
+  category?: string
+}
+
 type GetAdminTicketsResponse = ApiSuccessResponse & {
   tickets: AdminTicket[]
+  pagination: AdminTicketsPagination
 }
 
 type ToggleAdminTicketStatusResponse = ApiSuccessResponse & {
@@ -433,8 +452,37 @@ export const adminApi = {
     return response.data
   },
 
-  getTickets: async (): Promise<GetAdminTicketsResponse> => {
-    const response = await apiClient.get<GetAdminTicketsResponse>('/admin/tickets')
+  getTickets: async (params?: AdminTicketFilters): Promise<GetAdminTicketsResponse> => {
+    const query = new URLSearchParams()
+
+    if (typeof params?.page === 'number') {
+      query.set('page', String(params.page))
+    }
+
+    if (typeof params?.pageSize === 'number') {
+      query.set('pageSize', String(params.pageSize))
+    }
+
+    if (params?.search?.trim()) {
+      query.set('search', params.search.trim())
+    }
+
+    if (params?.status) {
+      query.set('status', params.status)
+    }
+
+    if (params?.priority) {
+      query.set('priority', params.priority)
+    }
+
+    if (params?.category?.trim()) {
+      query.set('category', params.category.trim())
+    }
+
+    const queryString = query.toString()
+    const endpoint = queryString ? `/admin/tickets?${queryString}` : '/admin/tickets'
+
+    const response = await apiClient.get<GetAdminTicketsResponse>(endpoint)
     return response.data
   },
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { adminApi, authApi, getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
@@ -10,6 +10,14 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +36,18 @@ type AdminTicket = TicketResponse & {
   assignedTo: number | null
 }
 
+type TicketsPagination = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed'
+type PriorityFilter = 'all' | 'low' | 'medium' | 'high'
+
 const statusStyles: Record<AdminTicket['status'], string> = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200',
   in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
@@ -45,53 +65,73 @@ export default function AdminTicketsPage() {
   const { toast } = useToast()
   const [tickets, setTickets] = useState<AdminTicket[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [pagination, setPagination] = useState<TicketsPagination>({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
   const [updatingTicketId, setUpdatingTicketId] = useState<number | null>(null)
   const [deletingTicketId, setDeletingTicketId] = useState<number | null>(null)
 
-  const filteredTickets = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
+  const fetchTickets = useCallback(async () => {
+    try {
+      setIsLoading(true)
 
-    if (!term) {
-      return tickets
+      const response = await adminApi.getTickets({
+        page,
+        pageSize,
+        search: searchTerm || undefined,
+        category: categoryFilter.trim() || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        priority: priorityFilter === 'all' ? undefined : priorityFilter,
+      })
+
+      setTickets(Array.isArray(response.tickets) ? response.tickets : [])
+
+      if (response.pagination) {
+        setPagination(response.pagination)
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to load tickets'),
+        variant: 'destructive',
+      })
+
+      if ((error as { response?: { status?: number } })?.response?.status === 401) {
+        router.push('/auth/signin')
+      }
+
+      if ((error as { response?: { status?: number } })?.response?.status === 403) {
+        router.push('/auth/signin')
+      }
+    } finally {
+      setIsLoading(false)
     }
-
-    return tickets.filter((ticket) => {
-      return (
-        ticket.title.toLowerCase().includes(term) ||
-        ticket.description.toLowerCase().includes(term) ||
-        ticket.category.toLowerCase().includes(term)
-      )
-    })
-  }, [tickets, searchTerm])
+  }, [categoryFilter, page, pageSize, priorityFilter, router, searchTerm, statusFilter, toast])
 
   useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setIsLoading(true)
-        const response = await adminApi.getTickets()
-        setTickets(Array.isArray(response.tickets) ? response.tickets : [])
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load tickets'),
-          variant: 'destructive',
-        })
-
-        if ((error as { response?: { status?: number } })?.response?.status === 401) {
-          router.push('/auth/signin')
-        }
-
-        if ((error as { response?: { status?: number } })?.response?.status === 403) {
-          router.push('/auth/signin')
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchTickets()
-  }, [router, toast])
+  }, [fetchTickets])
+
+  useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      setPage(1)
+      setSearchTerm(searchInput.trim())
+    }, 300)
+
+    return () => window.clearTimeout(debounceTimer)
+  }, [searchInput])
 
   const handleLogout = async () => {
     try {
@@ -106,7 +146,6 @@ export default function AdminTicketsPage() {
     try {
       setUpdatingTicketId(ticketId)
       const response = await adminApi.toggleTicketStatus(ticketId)
-
       setTickets((previousTickets) =>
         previousTickets.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)),
       )
@@ -115,6 +154,8 @@ export default function AdminTicketsPage() {
         title: 'Success',
         description: 'Ticket status updated successfully',
       })
+
+      fetchTickets()
     } catch (error) {
       toast({
         title: 'Error',
@@ -131,12 +172,18 @@ export default function AdminTicketsPage() {
       setDeletingTicketId(ticketId)
       await adminApi.deleteTicket(ticketId)
 
-      setTickets((previousTickets) => previousTickets.filter((ticket) => ticket.id !== ticketId))
-
       toast({
         title: 'Success',
         description: 'Ticket deleted successfully',
       })
+
+      const isLastTicketOnPage = tickets.length === 1 && page > 1
+
+      if (isLastTicketOnPage) {
+        setPage((previousPage) => previousPage - 1)
+      } else {
+        fetchTickets()
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -173,15 +220,120 @@ export default function AdminTicketsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-6">
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search by title, description, or category"
-            className="pl-9"
-          />
-        </div>
+        <Card className="border-primary/10">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Filter Tickets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+              <div className="space-y-2 md:col-span-2 xl:col-span-2">
+                <Label htmlFor="ticket-search">Search</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="ticket-search"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    placeholder="Title, description, category"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-1 xl:col-span-1">
+                <Label htmlFor="ticket-category">Category</Label>
+                <Input
+                  id="ticket-category"
+                  value={categoryFilter}
+                  onChange={(event) => {
+                    setCategoryFilter(event.target.value)
+                    setPage(1)
+                  }}
+                  placeholder="Feature, Bug..."
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-1 xl:col-span-1">
+                <Label>Status</Label>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value: StatusFilter) => {
+                    setStatusFilter(value)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-1 xl:col-span-1">
+                <Label>Priority</Label>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={(value: PriorityFilter) => {
+                    setPriorityFilter(value)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All priorities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All priorities</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-1 xl:col-span-1">
+                <Label>Page Size</Label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value: string) => {
+                    setPageSize(Number(value))
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Page size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="20">20 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSearchInput('')
+                  setSearchTerm('')
+                  setCategoryFilter('')
+                  setStatusFilter('all')
+                  setPriorityFilter('all')
+                  setPage(1)
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-primary/10">
           <CardHeader>
@@ -190,11 +342,11 @@ export default function AdminTicketsPage() {
           <CardContent>
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Loading tickets...</p>
-            ) : filteredTickets.length === 0 ? (
+            ) : tickets.length === 0 ? (
               <p className="text-sm text-muted-foreground">No tickets found.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredTickets.map((ticket) => {
+                {tickets.map((ticket) => {
                   const isUpdating = updatingTicketId === ticket.id
                   const isDeleting = deletingTicketId === ticket.id
                   const isCompleted = ticket.status === 'completed'
@@ -204,7 +356,7 @@ export default function AdminTicketsPage() {
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <CardTitle className="text-base break-words">{ticket.title}</CardTitle>
+                            <CardTitle className="text-base wrap-break-word">{ticket.title}</CardTitle>
                             <p className="mt-1 text-xs text-muted-foreground">
                               Ticket #{ticket.id} | Category: {ticket.category}
                             </p>
@@ -274,6 +426,33 @@ export default function AdminTicketsPage() {
                 })}
               </div>
             )}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages} | {pagination.total} total tickets
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                  disabled={isLoading || !pagination.hasPreviousPage}
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((currentPage) => currentPage + 1)}
+                  disabled={isLoading || !pagination.hasNextPage}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </main>

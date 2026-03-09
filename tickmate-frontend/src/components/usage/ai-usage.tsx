@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +32,21 @@ interface UsageAnalyticsProps {
 }
 
 export function UsageAnalytics({ data }: UsageAnalyticsProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
+  const chartTextColor = isDark ? '#a3a3a3' : '#525252'
+  const chartGridColor = isDark ? '#27272a' : '#e4e4e7'
+  const tooltipBackgroundColor = isDark ? '#18181b' : '#ffffff'
+  const tooltipBorderColor = isDark ? '#3f3f46' : '#d4d4d8'
+  const tooltipTextColor = isDark ? '#f4f4f5' : '#18181b'
+
+  const tooltipStyle = {
+    backgroundColor: tooltipBackgroundColor,
+    border: `1px solid ${tooltipBorderColor}`,
+    color: tooltipTextColor,
+  }
+
   const analytics = useMemo(() => {
     if (!data || data.length === 0) {
       return {
@@ -209,12 +225,17 @@ export function UsageAnalytics({ data }: UsageAnalyticsProps) {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    labelStyle={{ fill: chartTextColor, fontSize: 12 }}
                   >
                     {analytics.tokenBreakdown.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={{ color: tooltipTextColor }}
+                    labelStyle={{ color: tooltipTextColor }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -227,10 +248,14 @@ export function UsageAnalytics({ data }: UsageAnalyticsProps) {
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={analytics.timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                  <XAxis dataKey="date" stroke={chartTextColor} tick={{ fill: chartTextColor }} />
+                  <YAxis stroke={chartTextColor} tick={{ fill: chartTextColor }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={{ color: tooltipTextColor }}
+                    labelStyle={{ color: tooltipTextColor }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="tokens" 
@@ -253,10 +278,14 @@ export function UsageAnalytics({ data }: UsageAnalyticsProps) {
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={analytics.timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                  <XAxis dataKey="date" stroke={chartTextColor} tick={{ fill: chartTextColor }} />
+                  <YAxis stroke={chartTextColor} tick={{ fill: chartTextColor }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={{ color: tooltipTextColor }}
+                    labelStyle={{ color: tooltipTextColor }}
+                  />
                   <Bar dataKey="requests" fill="#7c3aed" />
                 </BarChart>
               </ResponsiveContainer>

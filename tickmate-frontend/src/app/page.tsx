@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
 import Link from 'next/link'
 import { Zap, Users, Search, Lock, Mail, BarChart3, Sparkles, CheckCircle2, ArrowRight, Lightbulb, Shield, Workflow, MessageSquare } from 'lucide-react'
@@ -78,7 +78,7 @@ export default function Home() {
   ]
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 relative overflow-hidden">
+    <main className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 relative overflow-hidden">
       {/* Animated gradient orbs with floating animation */}
       <style>{`
         @keyframes float {
@@ -168,7 +168,7 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="border-primary/30 hover:bg-primary/5 transition-colors">
+            <Button asChild variant="outline" size="lg" className="border-primary/30 transition-colors">
               <Link href="#features">Explore Features</Link>
             </Button>
           </div>
@@ -195,7 +195,7 @@ export default function Home() {
             return (
               <Card
                 key={i}
-                className="border-primary/10 bg-gradient-to-br from-card/50 to-card/30 backdrop-blur hover:border-primary/30 transition-all group animate-slide-in-up"
+                className="border-primary/10 bg-linear-to-br from-card/50 to-card/30 backdrop-blur hover:border-primary/30 transition-all group animate-slide-in-up"
                 style={{ animationDelay: `${0.6 + i * 0.1}s` }}
               >
                 <CardContent className="pt-6">
@@ -268,7 +268,7 @@ export default function Home() {
                 </CardContent>
               </Card>
               {i < howItWorks.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-0.5 bg-gradient-to-r from-primary to-secondary transform -translate-y-1/2"></div>
+                <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-0.5 bg-linear-to-r from-primary to-secondary transform -translate-y-1/2"></div>
               )}
             </div>
           ))}
@@ -288,12 +288,12 @@ export default function Home() {
           {techStack.map((tech, i) => (
             <Card
               key={i}
-              className="border-primary/10 bg-gradient-to-br from-card/50 to-card/30 backdrop-blur hover:border-primary/30 transition-all group hover:shadow-lg hover:-translate-y-1 animate-slide-in-up"
+              className="border-primary/10 bg-linear-to-br from-card/50 to-card/30 backdrop-blur hover:border-primary/30 transition-all group hover:shadow-lg hover:-translate-y-1 animate-slide-in-up"
               style={{ animationDelay: `${0.15 + i * 0.08}s` }}
             >
               <CardContent className="pt-6 pb-6">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5 group-hover:scale-125 transition-transform group-hover:text-gradient-ai" />
+                  <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover:scale-125 transition-transform group-hover:text-gradient-ai" />
                   <div>
                     <h4 className="font-bold group-hover:text-gradient-ai transition-all">{tech.name}</h4>
                     <p className="text-sm text-muted-foreground">{tech.desc}</p>
@@ -307,7 +307,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <Card className="border-primary/20 shadow-2xl ai-glow bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 hover:shadow-3xl transition-shadow animate-slide-in-up">
+        <Card className="border-primary/20 shadow-2xl ai-glow bg-linear-to-br from-primary/10 via-accent/5 to-secondary/10 hover:shadow-3xl transition-shadow animate-slide-in-up">
           <CardContent className="pt-16 pb-16 text-center">
             <Sparkles className="w-12 h-12 text-primary mx-auto mb-6 animate-pulse" />
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gradient-ai">
