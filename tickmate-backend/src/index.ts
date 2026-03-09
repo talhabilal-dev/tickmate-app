@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
 import { ENV } from "./config/env.config.js";
-import { pool } from "./config/db.config.js";
+import db from "./config/db.config.js";
 import cookieParser from "cookie-parser";
 import userRoutes from "./routes/user.routes.js";
 import { inngest } from "./inngest/client.js";
@@ -10,6 +10,7 @@ import { serve } from "inngest/express";
 import ticketRoutes from "./routes/ticket.routes.js";
 import { onTicketCreated } from "./inngest/functions/on-ticket-create.js";
 import adminRoutes from "./routes/admin.routes.js";
+import { sql } from "drizzle-orm";
 
 
 const app = express();
@@ -53,7 +54,7 @@ app.use(
   "/api/inngest",
   serve({
     client: inngest,
-    functions: [onUserSignup, onUserForgotPassword ,onTicketCreated],
+    functions: [onUserSignup, onUserForgotPassword, onTicketCreated],
   })
 );
 app.use("/api/auth", userRoutes
@@ -66,13 +67,15 @@ app.get("/", (_req: Request, res: Response) => res.send("Hello World!"));
 
 const port = ENV.PORT || 3000;
 
-pool
-  .connect()
-  .then((client) => {
-    client.release();
+const startServer = async () => {
+  try {
+    // Run a minimal query to verify DB connectivity before starting the API.
+    await db.execute(sql`select 1`);
     console.log("✅ Connected to DB");
     app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-  })
-  .catch((err) => {
-    console.error("❌ Failed to connect to DB:", err);
-  });
+  } catch (error) {
+    console.error("❌ Failed to connect to DB:", error);
+  }
+};
+
+void startServer();

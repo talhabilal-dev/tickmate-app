@@ -1,18 +1,14 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { ENV } from "./env.config.js";
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { ENV } from './env.config.js';
 
 if (!ENV.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
+  throw new Error('DATABASE_URL is not defined in environment variables');
 }
 
-export const pool = new Pool({
-  connectionString: ENV.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+const sql = neon(ENV.DATABASE_URL);
 
-const db = drizzle(pool);
+const db = drizzle({ client: sql });
+
 
 export default db;
