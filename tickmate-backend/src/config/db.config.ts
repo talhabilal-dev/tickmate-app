@@ -8,6 +8,9 @@ if (!ENV.DATABASE_URL) {
 
 export const pool = new Pool({
   connectionString: ENV.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 const db = drizzle(pool);
