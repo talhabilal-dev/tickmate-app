@@ -233,7 +233,7 @@ export default function AdminTicketsPage() {
                   <Input
                     id="ticket-search"
                     value={searchInput}
-                    onChange={(event) => setSearchInput(event.target.value)}
+                    onChange={(event : React.ChangeEvent<HTMLInputElement>) => setSearchInput(event.target.value)}
                     placeholder="Title, description, category"
                     className="pl-9"
                   />
@@ -245,7 +245,7 @@ export default function AdminTicketsPage() {
                 <Input
                   id="ticket-category"
                   value={categoryFilter}
-                  onChange={(event) => {
+                  onChange={(event : React.ChangeEvent<HTMLInputElement>) => {
                     setCategoryFilter(event.target.value)
                     setPage(1)
                   }}
