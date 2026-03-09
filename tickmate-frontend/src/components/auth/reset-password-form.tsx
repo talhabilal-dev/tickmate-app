@@ -69,7 +69,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               <CheckCircle2 className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-center text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-center text-2xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
             Password Reset!
           </CardTitle>
           <CardDescription className="text-center">
@@ -95,7 +95,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gradient-ai"></div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-bold bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">
             Set New Password
           </CardTitle>
         </div>
