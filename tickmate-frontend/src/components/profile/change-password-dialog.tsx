@@ -35,7 +35,7 @@ export function ChangePasswordDialog() {
     formState: { errors },
     reset,
   } = useForm<ResetPasswordData>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(resetPasswordSchema as any),
   });
 
   const onSubmit = async (data: ResetPasswordData) => {

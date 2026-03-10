@@ -39,7 +39,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     setError,
     clearErrors,
   } = useForm<UpdateUserData>({
-    resolver: zodResolver(updateUserSchema),
+    resolver: zodResolver(updateUserSchema as any),
     defaultValues: {
       name: user.name,
       username: user.username,

@@ -29,7 +29,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     formState: { errors },
     watch,
   } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordFormSchema),
+    resolver: zodResolver(resetPasswordFormSchema as any),
   })
 
   const newPassword = watch('newPassword')

@@ -221,11 +221,10 @@ export function UsageAnalytics({ data }: UsageAnalyticsProps) {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(entry: any) => `${entry?.name ?? ''}: ${entry?.value ?? 0}`}
+                    label={({ name, value }: any) => `${name}: ${value}`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    labelStyle={{ fill: chartTextColor, fontSize: 12 }}
                   >
                     {analytics.tokenBreakdown.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { z } from 'zod';
+import type { z, ZodAny, ZodSchema } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -57,7 +57,7 @@ export function CreateTicketDialog({
     reset,
     setValue,
   } = useForm<CreateTicketFormData>({
-    resolver: zodResolver(createTicketSchema),
+    resolver: zodResolver(createTicketSchema as any),
     mode: 'onChange',
   });
 

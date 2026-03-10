@@ -29,7 +29,7 @@ export default function SignInForm({ role }: SignInFormProps) {
     handleSubmit,
     formState: { errors },
   } = useForm<SignInData>({
-    resolver: zodResolver(signInSchema),
+    resolver: zodResolver(signInSchema as any),
     defaultValues: {
       identifier: '',
       password: '',
