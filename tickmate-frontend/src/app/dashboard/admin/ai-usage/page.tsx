@@ -1,55 +1,55 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { UsageAnalytics } from '@/components/usage/ai-usage'
-import { adminApi, authApi, getApiErrorMessage } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { LogOut } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { UsageAnalytics } from "@/components/usage/ai-usage";
+import { adminApi, authApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { LogOut } from "lucide-react";
 
 type UsageLogView = {
-  id: number
-  user_id: number
-  user_name?: string
-  user_email?: string
-  ticket_id: number
-  operation: string
-  provider: string
-  model_name: string
-  request_id: string
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-  cached_prompt_tokens: number
-  is_cache_hit: boolean
-  status: string
-  error_message: string | null
-  metadata: string
-  created_at: string
-}
+  id: number;
+  user_id: number;
+  user_name?: string;
+  user_email?: string;
+  ticket_id: number;
+  operation: string;
+  provider: string;
+  model_name: string;
+  request_id: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cached_prompt_tokens: number;
+  is_cache_hit: boolean;
+  status: string;
+  error_message: string | null;
+  metadata: string;
+  created_at: string;
+};
 
 const mapToUsageView = (log: {
-  id: number
-  userId: number | null
-  userName: string | null
-  userEmail: string | null
-  ticketId: number | null
-  operation: string
-  provider: string
-  modelName: string
-  requestId: string | null
-  promptTokens: number
-  completionTokens: number
-  totalTokens: number
-  cachedPromptTokens: number
-  isCacheHit: boolean
-  status: string
-  errorMessage: string | null
-  metadata: Record<string, unknown> | null
-  createdAt: string
+  id: number;
+  userId: number | null;
+  userName: string | null;
+  userEmail: string | null;
+  ticketId: number | null;
+  operation: string;
+  provider: string;
+  modelName: string;
+  requestId: string | null;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cachedPromptTokens: number;
+  isCacheHit: boolean;
+  status: string;
+  errorMessage: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 }): UsageLogView => {
   return {
     id: log.id,
@@ -60,7 +60,7 @@ const mapToUsageView = (log: {
     operation: log.operation,
     provider: log.provider,
     model_name: log.modelName,
-    request_id: log.requestId ?? '',
+    request_id: log.requestId ?? "",
     prompt_tokens: log.promptTokens,
     completion_tokens: log.completionTokens,
     total_tokens: log.totalTokens,
@@ -70,48 +70,56 @@ const mapToUsageView = (log: {
     error_message: log.errorMessage,
     metadata: JSON.stringify(log.metadata ?? {}),
     created_at: log.createdAt,
-  }
-}
+  };
+};
 
 export default function AdminAiUsagePage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(true)
-  const [usageLogs, setUsageLogs] = useState<UsageLogView[]>([])
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [usageLogs, setUsageLogs] = useState<UsageLogView[]>([]);
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
-      router.push('/auth/signin')
+      await authApi.logout();
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   useEffect(() => {
     const fetchAiUsage = async () => {
       try {
-        setIsLoading(true)
-        const response = await adminApi.getAiUsage({ limit: 200 })
-        const rows = Array.isArray(response.logs) ? response.logs.map(mapToUsageView) : []
-        setUsageLogs(rows)
+        setIsLoading(true);
+        const response = await adminApi.getAiUsage({ limit: 200 });
+        const rows = Array.isArray(response.logs)
+          ? response.logs.map(mapToUsageView)
+          : [];
+        setUsageLogs(rows);
       } catch (error) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load AI usage data'),
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: getApiErrorMessage(
+            error,
+            "Failed to load AI usage data",
+          ),
+          variant: "destructive",
+        });
 
-        if ((error as any)?.response?.status === 401 || (error as any)?.response?.status === 403) {
-          router.push('/auth/signin')
+        if (
+          (error as any)?.response?.status === 401 ||
+          (error as any)?.response?.status === 403
+        ) {
+          router.push("/auth/signin");
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchAiUsage()
-  }, [router, toast])
+    fetchAiUsage();
+  }, [router, toast]);
 
   if (isLoading) {
     return (
@@ -121,7 +129,7 @@ export default function AdminAiUsagePage() {
           <p className="text-muted-foreground">Loading AI usage data...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -134,13 +142,22 @@ export default function AdminAiUsagePage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">Admin Control Panel</h1>
-              <p className="text-sm text-muted-foreground">Manage system and users</p>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                Admin Control Panel
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Manage system and users
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="border-primary/30"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -152,5 +169,5 @@ export default function AdminAiUsagePage() {
         <UsageAnalytics data={usageLogs} />
       </main>
     </div>
-  )
+  );
 }

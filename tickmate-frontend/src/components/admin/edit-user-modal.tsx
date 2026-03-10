@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,55 +8,64 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
-type UserRole = 'user' | 'moderator' | 'admin'
+type UserRole = "user" | "moderator" | "admin";
 
 type User = {
-  id: number
-  name: string
-  email: string
-  username: string
-  role: UserRole
-  isActive: boolean
-  createdAt: string
-}
+  id: number;
+  name: string;
+  email: string;
+  username: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+};
 
 interface EditUserModalProps {
-  open: boolean
-  user: User | null
-  onOpenChange: (open: boolean) => void
-  onSave: (payload: { userId: number; role: UserRole; isActive: boolean }) => Promise<void> | void
+  open: boolean;
+  user: User | null;
+  onOpenChange: (open: boolean) => void;
+  onSave: (payload: {
+    userId: number;
+    role: UserRole;
+    isActive: boolean;
+  }) => Promise<void> | void;
 }
 
-export function EditUserModal({ open, user, onOpenChange, onSave }: EditUserModalProps) {
-  const [role, setRole] = useState<UserRole>('user')
-  const [isActive, setIsActive] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+export function EditUserModal({
+  open,
+  user,
+  onOpenChange,
+  onSave,
+}: EditUserModalProps) {
+  const [role, setRole] = useState<UserRole>("user");
+  const [isActive, setIsActive] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!user) return
-    setRole(user.role)
-    setIsActive(user.isActive)
-  }, [user])
+    if (!user) return;
+    setRole(user.role);
+    setIsActive(user.isActive);
+  }, [user]);
 
   const handleSave = async () => {
-    if (!user) return
+    if (!user) return;
 
     try {
-      setIsSaving(true)
+      setIsSaving(true);
       await onSave({
         userId: user.id,
         role,
         isActive,
-      })
-      onOpenChange(false)
+      });
+      onOpenChange(false);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,7 +73,8 @@ export function EditUserModal({ open, user, onOpenChange, onSave }: EditUserModa
         <DialogHeader>
           <DialogTitle>Edit User Access</DialogTitle>
           <DialogDescription>
-            Update role and active status for <span className="font-medium">{user?.name}</span>.
+            Update role and active status for{" "}
+            <span className="font-medium">{user?.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
@@ -87,8 +97,8 @@ export function EditUserModal({ open, user, onOpenChange, onSave }: EditUserModa
             <Label htmlFor="is-active">Account Status</Label>
             <select
               id="is-active"
-              value={isActive ? 'active' : 'inactive'}
-              onChange={(event) => setIsActive(event.target.value === 'active')}
+              value={isActive ? "active" : "inactive"}
+              onChange={(event) => setIsActive(event.target.value === "active")}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               disabled={isSaving}
             >
@@ -99,14 +109,22 @@ export function EditUserModal({ open, user, onOpenChange, onSave }: EditUserModa
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
-          <Button className="ai-button" onClick={handleSave} disabled={isSaving || !user}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
+          <Button
+            className="ai-button"
+            onClick={handleSave}
+            disabled={isSaving || !user}
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

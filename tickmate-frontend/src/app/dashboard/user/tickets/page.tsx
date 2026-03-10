@@ -1,162 +1,187 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
-import { EditTicketDialog } from '@/components/tickets/edit-ticket-dialog'
-import { TicketCard } from '@/components/tickets/ticket-card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { authApi, getApiErrorMessage, ticketApi, userApi } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { TicketResponse } from '@/lib/schemas'
-import { AlertCircle, LogOut } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { CreateTicketDialog } from "@/components/tickets/create-ticket-dialog";
+import { EditTicketDialog } from "@/components/tickets/edit-ticket-dialog";
+import { TicketCard } from "@/components/tickets/ticket-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { authApi, getApiErrorMessage, ticketApi, userApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { TicketResponse } from "@/lib/schemas";
+import { AlertCircle, LogOut } from "lucide-react";
 
 export default function UserTicketsPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [tickets, setTickets] = useState<TicketResponse[]>([])
-  const [assignedTickets, setAssignedTickets] = useState<TicketResponse[]>([])
-  const [isModerator, setIsModerator] = useState(false)
-  const [activeTab, setActiveTab] = useState<'my' | 'assigned'>('my')
-  const [isLoading, setIsLoading] = useState(true)
-  const [editingTicket, setEditingTicket] = useState<TicketResponse | null>(null)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [completingTicketId, setCompletingTicketId] = useState<number | null>(null)
-  const [replyingTicketId, setReplyingTicketId] = useState<number | null>(null)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [tickets, setTickets] = useState<TicketResponse[]>([]);
+  const [assignedTickets, setAssignedTickets] = useState<TicketResponse[]>([]);
+  const [isModerator, setIsModerator] = useState(false);
+  const [activeTab, setActiveTab] = useState<"my" | "assigned">("my");
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingTicket, setEditingTicket] = useState<TicketResponse | null>(
+    null,
+  );
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [completingTicketId, setCompletingTicketId] = useState<number | null>(
+    null,
+  );
+  const [replyingTicketId, setReplyingTicketId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        setIsLoading(true)
+        setIsLoading(true);
         const [profileRes, ticketsRes] = await Promise.all([
           userApi.getProfile(),
           ticketApi.getMyTickets(),
-        ])
+        ]);
 
-        const role = profileRes?.user?.role
-        const canSeeAssigned = role === 'moderator'
+        const role = profileRes?.user?.role;
+        const canSeeAssigned = role === "moderator";
 
-        setIsModerator(canSeeAssigned)
-        setTickets(Array.isArray(ticketsRes.tickets) ? ticketsRes.tickets : [])
+        setIsModerator(canSeeAssigned);
+        setTickets(Array.isArray(ticketsRes.tickets) ? ticketsRes.tickets : []);
 
         if (canSeeAssigned) {
-          const assignedRes = await ticketApi.getAssignedTickets()
-          setAssignedTickets(Array.isArray(assignedRes.tickets) ? assignedRes.tickets : [])
+          const assignedRes = await ticketApi.getAssignedTickets();
+          setAssignedTickets(
+            Array.isArray(assignedRes.tickets) ? assignedRes.tickets : [],
+          );
         }
       } catch (error: any) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load tickets'),
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: getApiErrorMessage(error, "Failed to load tickets"),
+          variant: "destructive",
+        });
 
         if (error.response?.status === 401) {
-          router.push('/auth/signin')
+          router.push("/auth/signin");
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchTickets()
-  }, [router, toast])
+    fetchTickets();
+  }, [router, toast]);
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
+      await authApi.logout();
       toast({
-        title: 'Success',
-        description: 'Logged out successfully',
-      })
-      router.push('/auth/signin')
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   const handleTicketCreated = (newTicket: TicketResponse) => {
-    setTickets([newTicket, ...tickets])
-  }
+    setTickets([newTicket, ...tickets]);
+  };
 
   const handleEditTicket = (ticket: TicketResponse) => {
-    setEditingTicket(ticket)
-    setShowEditDialog(true)
-  }
+    setEditingTicket(ticket);
+    setShowEditDialog(true);
+  };
 
   const handleTicketUpdated = (updatedTicket: TicketResponse) => {
-    setTickets((prev) => prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)))
-    setAssignedTickets((prev) => prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)))
-    setEditingTicket(null)
-    setShowEditDialog(false)
-  }
+    setTickets((prev) =>
+      prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)),
+    );
+    setAssignedTickets((prev) =>
+      prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)),
+    );
+    setEditingTicket(null);
+    setShowEditDialog(false);
+  };
 
   const handleDeleteTicket = async (ticketId: number) => {
     try {
-      await ticketApi.deleteTicket(ticketId)
-      setTickets((prev) => prev.filter((t) => t.id !== ticketId))
-      setAssignedTickets((prev) => prev.filter((t) => t.id !== ticketId))
+      await ticketApi.deleteTicket(ticketId);
+      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      setAssignedTickets((prev) => prev.filter((t) => t.id !== ticketId));
       toast({
-        title: 'Success',
-        description: 'Ticket deleted successfully',
-      })
+        title: "Success",
+        description: "Ticket deleted successfully",
+      });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to delete ticket'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to delete ticket"),
+        variant: "destructive",
+      });
     }
-  }
+  };
 
   const handleMarkCompleted = async (ticketId: number) => {
     try {
-      setCompletingTicketId(ticketId)
-      const response = await ticketApi.markTicketCompleted(ticketId)
+      setCompletingTicketId(ticketId);
+      const response = await ticketApi.markTicketCompleted(ticketId);
       setTickets((prev) =>
-        prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)),
-      )
+        prev.map((ticket) =>
+          ticket.id === ticketId ? response.ticket : ticket,
+        ),
+      );
       setAssignedTickets((prev) =>
-        prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)),
-      )
+        prev.map((ticket) =>
+          ticket.id === ticketId ? response.ticket : ticket,
+        ),
+      );
       toast({
-        title: 'Success',
-        description: 'Ticket marked as completed',
-      })
+        title: "Success",
+        description: "Ticket marked as completed",
+      });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to update ticket status'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(
+          error,
+          "Failed to update ticket status",
+        ),
+        variant: "destructive",
+      });
     } finally {
-      setCompletingTicketId(null)
+      setCompletingTicketId(null);
     }
-  }
+  };
 
   const handleReplyTicket = async (ticketId: number, message: string) => {
     try {
-      setReplyingTicketId(ticketId)
-      const response = await ticketApi.replyToTicket({ ticketId, message })
-      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)))
-      setAssignedTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? response.ticket : ticket)))
+      setReplyingTicketId(ticketId);
+      const response = await ticketApi.replyToTicket({ ticketId, message });
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId ? response.ticket : ticket,
+        ),
+      );
+      setAssignedTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId ? response.ticket : ticket,
+        ),
+      );
       toast({
-        title: 'Success',
-        description: 'Reply sent successfully',
-      })
+        title: "Success",
+        description: "Reply sent successfully",
+      });
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to send reply'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to send reply"),
+        variant: "destructive",
+      });
     } finally {
-      setReplyingTicketId(null)
+      setReplyingTicketId(null);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -166,7 +191,7 @@ export default function UserTicketsPage() {
           <p className="text-muted-foreground">Loading your tickets...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -179,7 +204,9 @@ export default function UserTicketsPage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">My Tickets</h1>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                My Tickets
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -200,16 +227,23 @@ export default function UserTicketsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <Tabs
           value={activeTab}
-          onValueChange={(value: string) => setActiveTab(value as 'my' | 'assigned')}
+          onValueChange={(value: string) =>
+            setActiveTab(value as "my" | "assigned")
+          }
           className="space-y-6"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <TabsList>
               <TabsTrigger value="my">My Tickets</TabsTrigger>
-              {isModerator && <TabsTrigger value="assigned">Assigned Tickets</TabsTrigger>}
+              {isModerator && (
+                <TabsTrigger value="assigned">Assigned Tickets</TabsTrigger>
+              )}
             </TabsList>
-            {activeTab === 'my' && (
-              <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
+            {activeTab === "my" && (
+              <CreateTicketDialog
+                onTicketCreated={handleTicketCreated}
+                triggerClassName="w-full sm:w-auto"
+              />
             )}
           </div>
 
@@ -224,9 +258,13 @@ export default function UserTicketsPage() {
                   </div>
                   <p className="text-muted-foreground mb-4">No tickets yet</p>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Create your first ticket to get help and share your ideas with the community
+                    Create your first ticket to get help and share your ideas
+                    with the community
                   </p>
-                  <CreateTicketDialog onTicketCreated={handleTicketCreated} triggerClassName="w-full sm:w-auto" />
+                  <CreateTicketDialog
+                    onTicketCreated={handleTicketCreated}
+                    triggerClassName="w-full sm:w-auto"
+                  />
                 </CardContent>
               </Card>
             ) : (
@@ -255,7 +293,9 @@ export default function UserTicketsPage() {
                         <AlertCircle className="w-8 h-8 text-primary" />
                       </div>
                     </div>
-                    <p className="text-muted-foreground mb-4">No assigned tickets</p>
+                    <p className="text-muted-foreground mb-4">
+                      No assigned tickets
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       Tickets assigned to you will appear here.
                     </p>
@@ -287,5 +327,5 @@ export default function UserTicketsPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

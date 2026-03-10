@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { UserResponse } from '@/lib/schemas';
-import { Mail, User, Calendar, Shield } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { UserResponse } from "@/lib/schemas";
+import { Mail, User, Calendar, Shield } from "lucide-react";
 
 interface ProfileCardProps {
   user: UserResponse;
@@ -87,10 +93,10 @@ export function ProfileCard({
             <span>Member since</span>
           </div>
           <p className="font-medium">
-            {new Date(user.createdAt).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
+            {new Date(user.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </p>
         </div>

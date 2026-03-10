@@ -1,8 +1,14 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Ticket, UserCircle, Sparkles, Globe } from 'lucide-react'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Ticket,
+  UserCircle,
+  Sparkles,
+  Globe,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,41 +20,41 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from "@/components/ui/sidebar";
 
 const mainNavItems = [
   {
-    title: 'Overview',
-    href: '/dashboard/user',
+    title: "Overview",
+    href: "/dashboard/user",
     icon: LayoutDashboard,
   },
   {
-    title: 'My Tickets',
-    href: '/dashboard/user/tickets',
+    title: "My Tickets",
+    href: "/dashboard/user/tickets",
     icon: Ticket,
   },
   {
-    title: 'Public Tickets',
-    href: '/dashboard/user/public-tickets',
+    title: "Public Tickets",
+    href: "/dashboard/user/public-tickets",
     icon: Globe,
   },
   {
-    title: 'Profile',
-    href: '/dashboard/user/profile',
+    title: "Profile",
+    href: "/dashboard/user/profile",
     icon: UserCircle,
   },
-]
+];
 
 export function AppSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const isItemActive = (href: string) => {
-    if (href === '/dashboard/user') {
-      return pathname === href
+    if (href === "/dashboard/user") {
+      return pathname === href;
     }
 
-    return pathname === href || pathname.startsWith(`${href}/`)
-  }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <Sidebar>
@@ -86,5 +92,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

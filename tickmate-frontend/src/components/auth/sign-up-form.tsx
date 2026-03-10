@@ -1,28 +1,34 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { signUpSchema, type SignUpData } from '@/lib/schemas'
-import { authApi, getApiErrorMessage } from '@/lib/api'
-import UsernameAvailabilityIndicator from './username-availability-indicator'
-import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { signUpSchema, type SignUpData } from "@/lib/schemas";
+import { authApi, getApiErrorMessage } from "@/lib/api";
+import UsernameAvailabilityIndicator from "./username-availability-indicator";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignUpForm() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [skillInput, setSkillInput] = useState('')
-  const [skills, setSkills] = useState<string[]>([])
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [skillInput, setSkillInput] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
 
   const {
     register,
@@ -35,44 +41,45 @@ export default function SignUpForm() {
     defaultValues: {
       skills: [],
     },
-  })
+  });
 
-  const username = watch('username')
+  const username = watch("username");
 
   const onSubmit = async (data: SignUpData) => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await authApi.signUp({
         ...data,
         skills,
-      })
+      });
       toast({
-        title: 'Success',
-        description: 'Account created! Check your email to verify your account.',
-      })
-      reset()
-      router.push('/auth/signin')
+        title: "Success",
+        description:
+          "Account created! Check your email to verify your account.",
+      });
+      reset();
+      router.push("/auth/signin");
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to create account'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to create account"),
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const addSkill = () => {
     if (skillInput.trim() && !skills.includes(skillInput.trim())) {
-      setSkills([...skills, skillInput.trim()])
-      setSkillInput('')
+      setSkills([...skills, skillInput.trim()]);
+      setSkillInput("");
     }
-  }
+  };
 
   const removeSkill = (skillToRemove: string) => {
-    setSkills(skills.filter((s) => s !== skillToRemove))
-  }
+    setSkills(skills.filter((s) => s !== skillToRemove));
+  };
 
   return (
     <Card className="w-full max-w-md border-primary/20 shadow-lg ai-glow">
@@ -93,9 +100,9 @@ export default function SignUpForm() {
             <Input
               id="name"
               placeholder="John Doe"
-              {...register('name')}
+              {...register("name")}
               disabled={isLoading}
-              aria-describedby={errors.name ? 'name-error' : undefined}
+              aria-describedby={errors.name ? "name-error" : undefined}
             />
             {errors.name && (
               <p id="name-error" className="text-sm text-red-500">
@@ -111,9 +118,9 @@ export default function SignUpForm() {
               id="email"
               type="email"
               placeholder="john@example.com"
-              {...register('email')}
+              {...register("email")}
               disabled={isLoading}
-              aria-describedby={errors.email ? 'email-error' : undefined}
+              aria-describedby={errors.email ? "email-error" : undefined}
             />
             {errors.email && (
               <p id="email-error" className="text-sm text-red-500">
@@ -129,11 +136,15 @@ export default function SignUpForm() {
               <Input
                 id="username"
                 placeholder="johndoe"
-                {...register('username')}
+                {...register("username")}
                 disabled={isLoading}
-                aria-describedby={errors.username ? 'username-error' : undefined}
+                aria-describedby={
+                  errors.username ? "username-error" : undefined
+                }
               />
-              {username && <UsernameAvailabilityIndicator username={username} />}
+              {username && (
+                <UsernameAvailabilityIndicator username={username} />
+              )}
             </div>
             {errors.username && (
               <p id="username-error" className="text-sm text-red-500">
@@ -148,11 +159,13 @@ export default function SignUpForm() {
             <div className="relative">
               <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                {...register('password')}
+                {...register("password")}
                 disabled={isLoading}
-                aria-describedby={errors.password ? 'password-error' : undefined}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
               />
               <button
                 type="button"
@@ -176,11 +189,13 @@ export default function SignUpForm() {
             <div className="relative">
               <Input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••"
-                {...register('confirmPassword')}
+                {...register("confirmPassword")}
                 disabled={isLoading}
-                aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
+                aria-describedby={
+                  errors.confirmPassword ? "confirm-password-error" : undefined
+                }
               />
               <button
                 type="button"
@@ -208,9 +223,9 @@ export default function SignUpForm() {
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addSkill()
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSkill();
                   }
                 }}
                 disabled={isLoading}
@@ -252,12 +267,12 @@ export default function SignUpForm() {
             className="w-full ai-button font-semibold text-base"
             disabled={isLoading}
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? "Creating account..." : "Create Account"}
           </Button>
 
           {/* Sign In Link */}
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link href="/auth/signin" className="text-primary hover:underline">
               Sign in
             </Link>
@@ -265,5 +280,5 @@ export default function SignUpForm() {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

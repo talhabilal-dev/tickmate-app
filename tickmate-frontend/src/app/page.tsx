@@ -1,81 +1,103 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ThemeToggle } from '@/components/theme-toggle'
-import Link from 'next/link'
-import { Zap, Users, Search, Lock, Mail, BarChart3, Sparkles, CheckCircle2, ArrowRight, Lightbulb, Shield, Workflow, MessageSquare } from 'lucide-react'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
+import Link from "next/link";
+import {
+  Zap,
+  Users,
+  Search,
+  Lock,
+  Mail,
+  BarChart3,
+  Sparkles,
+  CheckCircle2,
+  ArrowRight,
+  Lightbulb,
+  Shield,
+  Workflow,
+  MessageSquare,
+} from "lucide-react";
 
 export default function Home() {
   const benefits = [
-    { title: '50% Faster', subtitle: 'Resolution with AI suggestions' },
-    { title: '90% Similar', subtitle: 'Tickets found instantly' },
-    { title: '100% Secure', subtitle: 'Enterprise-grade encryption' },
-  ]
+    { title: "50% Faster", subtitle: "Resolution with AI suggestions" },
+    { title: "90% Similar", subtitle: "Tickets found instantly" },
+    { title: "100% Secure", subtitle: "Enterprise-grade encryption" },
+  ];
   const features = [
     {
       icon: Zap,
-      title: 'AI-Powered Ticket Analysis',
-      description: 'Automatically analyze tickets with OpenAI to extract insights and categorize issues intelligently',
+      title: "AI-Powered Ticket Analysis",
+      description:
+        "Automatically analyze tickets with OpenAI to extract insights and categorize issues intelligently",
     },
     {
       icon: Search,
-      title: 'Smart Similarity Search',
-      description: 'Find similar resolved tickets using vector embeddings to help users find solutions faster',
+      title: "Smart Similarity Search",
+      description:
+        "Find similar resolved tickets using vector embeddings to help users find solutions faster",
     },
     {
       icon: Users,
-      title: 'Role-Based Access',
-      description: 'Support user, moderator, and admin roles with granular permissions and audit logging',
+      title: "Role-Based Access",
+      description:
+        "Support user, moderator, and admin roles with granular permissions and audit logging",
     },
     {
       icon: Mail,
-      title: 'Email Workflows',
-      description: 'Automated email verification and password reset with magic links via Resend',
+      title: "Email Workflows",
+      description:
+        "Automated email verification and password reset with magic links via Resend",
     },
     {
       icon: Lock,
-      title: 'Secure Authentication',
-      description: 'JWT-based auth with HttpOnly cookies and comprehensive session management',
+      title: "Secure Authentication",
+      description:
+        "JWT-based auth with HttpOnly cookies and comprehensive session management",
     },
     {
       icon: BarChart3,
-      title: 'Dashboard & Analytics',
-      description: 'Real-time statistics and comprehensive admin dashboard for system monitoring',
+      title: "Dashboard & Analytics",
+      description:
+        "Real-time statistics and comprehensive admin dashboard for system monitoring",
     },
-  ]
+  ];
 
   const techStack = [
-    { name: 'Node.js + Express', desc: 'Fast, scalable backend' },
-    { name: 'PostgreSQL + Drizzle', desc: 'Type-safe database layer' },
-    { name: 'OpenAI GPT-4', desc: 'Intelligent analysis' },
-    { name: 'Qdrant Vector DB', desc: 'Similarity search' },
-    { name: 'Inngest', desc: 'Async workflows' },
-    { name: 'Resend', desc: 'Email delivery' },
-  ]
+    { name: "Node.js + Express", desc: "Fast, scalable backend" },
+    { name: "PostgreSQL + Drizzle", desc: "Type-safe database layer" },
+    { name: "OpenAI GPT-4", desc: "Intelligent analysis" },
+    { name: "Qdrant Vector DB", desc: "Similarity search" },
+    { name: "Inngest", desc: "Async workflows" },
+    { name: "Resend", desc: "Email delivery" },
+  ];
 
   const howItWorks = [
     {
-      number: '1',
-      title: 'Create Ticket',
-      description: 'Users submit a ticket with title, description, and category',
+      number: "1",
+      title: "Create Ticket",
+      description:
+        "Users submit a ticket with title, description, and category",
     },
     {
-      number: '2',
-      title: 'AI Analysis',
-      description: 'System analyzes and finds similar resolved tickets automatically',
+      number: "2",
+      title: "AI Analysis",
+      description:
+        "System analyzes and finds similar resolved tickets automatically",
     },
     {
-      number: '3',
-      title: 'Show Suggestions',
-      description: 'User sees similar solutions before creating the ticket',
+      number: "3",
+      title: "Show Suggestions",
+      description: "User sees similar solutions before creating the ticket",
     },
     {
-      number: '4',
-      title: 'Track & Collaborate',
-      description: 'Moderators and admins can reply and update ticket status',
+      number: "4",
+      title: "Track & Collaborate",
+      description: "Moderators and admins can reply and update ticket status",
     },
-  ]
+  ];
 
   return (
     <main className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 relative overflow-hidden">
@@ -134,7 +156,12 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button asChild variant="outline" size="sm" className="border-primary/30">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="border-primary/30"
+            >
               <Link href="/auth/signin">Sign In</Link>
             </Button>
             <Button asChild size="sm" className="ai-button">
@@ -147,39 +174,72 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-block px-4 py-2 rounded-full bg-gradient-ai/10 border border-primary/20 mb-6 animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
+          <div
+            className="inline-block px-4 py-2 rounded-full bg-gradient-ai/10 border border-primary/20 mb-6 animate-slide-in-up"
+            style={{ animationDelay: "0.1s" }}
+          >
             <span className="text-sm font-semibold text-gradient-ai flex items-center gap-2 justify-center">
               <Sparkles className="w-4 h-4" />
               AI-Powered Ticket Management
             </span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
+          <h1
+            className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-slide-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
             Smart Ticket Management
             <br />
             <span className="text-gradient-ai">Powered by AI</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
-            Create, manage, and resolve tickets with intelligent AI analysis. Find similar solutions instantly and collaborate seamlessly with your team. Powered by OpenAI and vector embeddings.
+          <p
+            className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-in-up"
+            style={{ animationDelay: "0.3s" }}
+          >
+            Create, manage, and resolve tickets with intelligent AI analysis.
+            Find similar solutions instantly and collaborate seamlessly with
+            your team. Powered by OpenAI and vector embeddings.
           </p>
-          <div className="flex gap-4 justify-center flex-wrap animate-slide-in-up" style={{ animationDelay: '0.4s' }}>
-            <Button asChild size="lg" className="ai-button font-semibold text-base hover:scale-105 transition-transform">
+          <div
+            className="flex gap-4 justify-center flex-wrap animate-slide-in-up"
+            style={{ animationDelay: "0.4s" }}
+          >
+            <Button
+              asChild
+              size="lg"
+              className="ai-button font-semibold text-base hover:scale-105 transition-transform"
+            >
               <Link href="/auth/signup">
                 Get Started Free
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="border-primary/30 transition-colors">
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-primary/30 transition-colors"
+            >
               <Link href="#features">Explore Features</Link>
             </Button>
           </div>
         </div>
 
         {/* Benefits Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 animate-slide-in-up" style={{ animationDelay: '0.5s' }}>
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 animate-slide-in-up"
+          style={{ animationDelay: "0.5s" }}
+        >
           {benefits.map((benefit, i) => (
-            <div key={i} className="text-center p-6 rounded-lg border border-primary/10 backdrop-blur hover:border-primary/30 transition-colors group">
-              <p className="text-3xl font-bold text-gradient-ai mb-2 group-hover:scale-110 transition-transform">{benefit.title}</p>
-              <p className="text-sm text-muted-foreground">{benefit.subtitle}</p>
+            <div
+              key={i}
+              className="text-center p-6 rounded-lg border border-primary/10 backdrop-blur hover:border-primary/30 transition-colors group"
+            >
+              <p className="text-3xl font-bold text-gradient-ai mb-2 group-hover:scale-110 transition-transform">
+                {benefit.title}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {benefit.subtitle}
+              </p>
             </div>
           ))}
         </div>
@@ -187,11 +247,11 @@ export default function Home() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
           {[
-            { label: 'Real-time Analysis', value: 'AI-Powered', icon: Zap },
-            { label: 'Vector Search', value: 'Qdrant DB', icon: Search },
-            { label: 'Email Workflows', value: 'Automated', icon: Mail },
+            { label: "Real-time Analysis", value: "AI-Powered", icon: Zap },
+            { label: "Vector Search", value: "Qdrant DB", icon: Search },
+            { label: "Email Workflows", value: "Automated", icon: Mail },
           ].map((stat, i) => {
-            const Icon = stat.icon
+            const Icon = stat.icon;
             return (
               <Card
                 key={i}
@@ -200,27 +260,40 @@ export default function Home() {
               >
                 <CardContent className="pt-6">
                   <Icon className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gradient-ai">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-bold text-gradient-ai">
+                    {stat.value}
+                  </p>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section
+        id="features"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
+      >
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">Powerful Features</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
-            Everything you need to manage tickets efficiently and collaborate with your team. Powered by cutting-edge AI technology.
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">
+            Powerful Features
+          </h2>
+          <p
+            className="text-lg text-muted-foreground max-w-2xl mx-auto animate-slide-in-up"
+            style={{ animationDelay: "0.1s" }}
+          >
+            Everything you need to manage tickets efficiently and collaborate
+            with your team. Powered by cutting-edge AI technology.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, i) => {
-            const Icon = feature.icon
+            const Icon = feature.icon;
             return (
               <Card
                 key={i}
@@ -231,13 +304,15 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-lg gradient-ai flex items-center justify-center mb-4 group-hover:scale-125 transition-transform group-hover:shadow-lg group-hover:shadow-primary/50">
                     <Icon className="w-6 h-6 text-primary-foreground" />
                   </div>
-                  <CardTitle className="group-hover:text-gradient-ai transition-all">{feature.title}</CardTitle>
+                  <CardTitle className="group-hover:text-gradient-ai transition-all">
+                    {feature.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </section>
@@ -245,8 +320,13 @@ export default function Home() {
       {/* How It Works Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">How TickMate Works</h2>
-          <p className="text-lg text-muted-foreground animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">
+            How TickMate Works
+          </h2>
+          <p
+            className="text-lg text-muted-foreground animate-slide-in-up"
+            style={{ animationDelay: "0.1s" }}
+          >
             Simple workflow designed for maximum efficiency and collaboration
           </p>
         </div>
@@ -263,8 +343,12 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-full gradient-ai flex items-center justify-center mb-4 text-lg font-bold text-primary-foreground group-hover:scale-125 transition-transform group-hover:shadow-lg group-hover:shadow-primary/50">
                     {step.number}
                   </div>
-                  <h3 className="font-bold mb-2 group-hover:text-gradient-ai transition-all">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                  <h3 className="font-bold mb-2 group-hover:text-gradient-ai transition-all">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {step.description}
+                  </p>
                 </CardContent>
               </Card>
               {i < howItWorks.length - 1 && (
@@ -278,9 +362,15 @@ export default function Home() {
       {/* Tech Stack Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">Built with Modern Tech</h2>
-          <p className="text-lg text-muted-foreground animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
-            Enterprise-grade technology for reliability, performance, and scalability
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">
+            Built with Modern Tech
+          </h2>
+          <p
+            className="text-lg text-muted-foreground animate-slide-in-up"
+            style={{ animationDelay: "0.1s" }}
+          >
+            Enterprise-grade technology for reliability, performance, and
+            scalability
           </p>
         </div>
 
@@ -295,7 +385,9 @@ export default function Home() {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover:scale-125 transition-transform group-hover:text-gradient-ai" />
                   <div>
-                    <h4 className="font-bold group-hover:text-gradient-ai transition-all">{tech.name}</h4>
+                    <h4 className="font-bold group-hover:text-gradient-ai transition-all">
+                      {tech.name}
+                    </h4>
                     <p className="text-sm text-muted-foreground">{tech.desc}</p>
                   </div>
                 </div>
@@ -314,16 +406,27 @@ export default function Home() {
               Ready to transform your ticket management?
             </h2>
             <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Join teams using TickMate to manage tickets smarter with AI-powered insights, instant similar ticket suggestions, and seamless collaboration. Start free today.
+              Join teams using TickMate to manage tickets smarter with
+              AI-powered insights, instant similar ticket suggestions, and
+              seamless collaboration. Start free today.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <Button asChild size="lg" className="ai-button font-semibold hover:scale-105 transition-transform">
+              <Button
+                asChild
+                size="lg"
+                className="ai-button font-semibold hover:scale-105 transition-transform"
+              >
                 <Link href="/auth/signup">
                   Get Started Free
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-primary/30 hover:bg-primary/5 transition-colors">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="border-primary/30 hover:bg-primary/5 transition-colors"
+              >
                 <Link href="/auth/signin">Sign In to Existing Account</Link>
               </Button>
             </div>
@@ -340,7 +443,9 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-gradient-ai animate-pulse"></div>
-              <span className="font-bold text-gradient-ai text-lg">TickMate</span>
+              <span className="font-bold text-gradient-ai text-lg">
+                TickMate
+              </span>
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold mb-3">Product</p>
@@ -364,13 +469,19 @@ export default function Home() {
               Smart ticket management powered by AI. © 2024 TickMate.
             </p>
             <div className="flex gap-4 text-xs text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms</a>
-              <a href="#" className="hover:text-primary transition-colors">Status</a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Privacy
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Terms
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Status
+              </a>
             </div>
           </div>
         </div>
       </footer>
     </main>
-  )
+  );
 }

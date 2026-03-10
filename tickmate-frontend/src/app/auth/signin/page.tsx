@@ -1,18 +1,29 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-import { ArrowRight, Shield, Users } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Link from "next/link";
+import { ArrowRight, Shield, Users } from "lucide-react";
 
 export default function SignInPage() {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
       <div className="text-center mb-8 sm:mb-10">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">Welcome Back</p>
-        <h1 className="text-4xl sm:text-5xl font-black leading-tight text-gradient-ai">Choose Your Role</h1>
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
+          Welcome Back
+        </p>
+        <h1 className="text-4xl sm:text-5xl font-black leading-tight text-gradient-ai">
+          Choose Your Role
+        </h1>
         <p className="mt-3 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-          Sign in as a user or an administrator to continue to the right workspace.
+          Sign in as a user or an administrator to continue to the right
+          workspace.
         </p>
       </div>
 
@@ -25,12 +36,15 @@ export default function SignInPage() {
               </div>
               <div>
                 <CardTitle className="text-2xl">User Account</CardTitle>
-                <CardDescription className="mt-1 text-sm">Personal dashboard and ticket workflow</CardDescription>
+                <CardDescription className="mt-1 text-sm">
+                  Personal dashboard and ticket workflow
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Sign in with your email or username to manage your profile, create tickets, and track progress.
+                Sign in with your email or username to manage your profile,
+                create tickets, and track progress.
               </p>
               <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 Continue as User
@@ -48,12 +62,15 @@ export default function SignInPage() {
               </div>
               <div>
                 <CardTitle className="text-2xl">Admin Account</CardTitle>
-                <CardDescription className="mt-1 text-sm">System management and moderation tools</CardDescription>
+                <CardDescription className="mt-1 text-sm">
+                  System management and moderation tools
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Use admin credentials to access the control panel, manage users, and monitor platform operations.
+                Use admin credentials to access the control panel, manage users,
+                and monitor platform operations.
               </p>
               <div className="inline-flex items-center gap-2 text-sm font-semibold text-secondary">
                 Continue as Admin
@@ -65,7 +82,11 @@ export default function SignInPage() {
       </div>
 
       <div className="mt-8 text-center">
-        <Button asChild variant="outline" className="border-primary/30 hover:bg-primary/5">
+        <Button
+          asChild
+          variant="outline"
+          className="border-primary/30 hover:bg-primary/5"
+        >
           <Link href="/">Back to Home</Link>
         </Button>
       </div>

@@ -1,10 +1,10 @@
-import SignUpForm from '@/components/auth/sign-up-form'
+import SignUpForm from "@/components/auth/sign-up-form";
 
 export const metadata = {
-  title: 'Sign Up',
-  description: 'Create a new account',
-}
+  title: "Sign Up",
+  description: "Create a new account",
+};
 
 export default function SignUpPage() {
-  return <SignUpForm />
+  return <SignUpForm />;
 }

@@ -1,67 +1,73 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { ProfileCard } from '@/components/profile/profile-card'
-import { EditProfileDialog } from '@/components/profile/edit-profile-dialog'
-import { ChangePasswordDialog } from '@/components/profile/change-password-dialog'
-import { DeleteAccountDialog } from '@/components/profile/delete-account-dialog'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { userApi, authApi, getApiErrorMessage } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { UserResponse } from '@/lib/schemas'
-import { LogOut } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ProfileCard } from "@/components/profile/profile-card";
+import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
+import { ChangePasswordDialog } from "@/components/profile/change-password-dialog";
+import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { userApi, authApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { UserResponse } from "@/lib/schemas";
+import { LogOut } from "lucide-react";
 
 export default function UserProfilePage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [user, setUser] = useState<UserResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [user, setUser] = useState<UserResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        setIsLoading(true)
-        const profileRes = await userApi.getProfile()
-        const resolvedUser = profileRes?.user ?? profileRes?.data?.user ?? null
-        setUser(resolvedUser)
+        setIsLoading(true);
+        const profileRes = await userApi.getProfile();
+        const resolvedUser = profileRes?.user ?? profileRes?.data?.user ?? null;
+        setUser(resolvedUser);
       } catch (error: any) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load profile'),
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: getApiErrorMessage(error, "Failed to load profile"),
+          variant: "destructive",
+        });
 
         if (error.response?.status === 401) {
-          router.push('/auth/signin')
+          router.push("/auth/signin");
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchProfile()
-  }, [router, toast])
+    fetchProfile();
+  }, [router, toast]);
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
+      await authApi.logout();
       toast({
-        title: 'Success',
-        description: 'Logged out successfully',
-      })
-      router.push('/auth/signin')
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   const handleProfileUpdate = (updatedUser: UserResponse) => {
-    setUser(updatedUser)
-  }
+    setUser(updatedUser);
+  };
 
   if (isLoading) {
     return (
@@ -71,7 +77,7 @@ export default function UserProfilePage() {
           <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -79,14 +85,16 @@ export default function UserProfilePage() {
       <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 flex items-center justify-center">
         <Card className="border-primary/20 shadow-lg ai-glow">
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground mb-4">Unable to load your profile</p>
+            <p className="text-center text-muted-foreground mb-4">
+              Unable to load your profile
+            </p>
             <Button asChild className="w-full ai-button">
               <a href="/auth/signin">Return to Sign In</a>
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -120,7 +128,9 @@ export default function UserProfilePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="mb-12">
           <h2 className="text-3xl font-bold mb-2">Your Profile</h2>
-          <p className="text-muted-foreground">Manage your profile and account settings</p>
+          <p className="text-muted-foreground">
+            Manage your profile and account settings
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
@@ -136,10 +146,15 @@ export default function UserProfilePage() {
           <Card className="border-primary/20 shadow-lg ai-glow h-fit">
             <CardHeader>
               <CardTitle className="text-lg">Account Settings</CardTitle>
-              <CardDescription>Manage your security and preferences</CardDescription>
+              <CardDescription>
+                Manage your security and preferences
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <EditProfileDialog user={user} onProfileUpdate={handleProfileUpdate} />
+              <EditProfileDialog
+                user={user}
+                onProfileUpdate={handleProfileUpdate}
+              />
               <ChangePasswordDialog />
               <DeleteAccountDialog />
             </CardContent>
@@ -147,5 +162,5 @@ export default function UserProfilePage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

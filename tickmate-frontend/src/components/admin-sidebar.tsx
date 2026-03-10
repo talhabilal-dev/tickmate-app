@@ -1,8 +1,15 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Bot, Users, FileClock, Sparkles, Ticket } from 'lucide-react'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Bot,
+  Users,
+  FileClock,
+  Sparkles,
+  Ticket,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,46 +21,46 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from "@/components/ui/sidebar";
 
 const adminNavItems = [
   {
-    title: 'Overview',
-    href: '/dashboard/admin',
+    title: "Overview",
+    href: "/dashboard/admin",
     icon: LayoutDashboard,
   },
   {
-    title: 'AI Usage',
-    href: '/dashboard/admin/ai-usage',
+    title: "AI Usage",
+    href: "/dashboard/admin/ai-usage",
     icon: Bot,
   },
   {
-    title: 'User Management',
-    href: '/dashboard/admin/users',
+    title: "User Management",
+    href: "/dashboard/admin/users",
     icon: Users,
   },
   {
-    title: 'Ticket Management',
-    href: '/dashboard/admin/tickets',
+    title: "Ticket Management",
+    href: "/dashboard/admin/tickets",
     icon: Ticket,
   },
   {
-    title: 'Logs',
-    href: '/dashboard/admin/logs',
+    title: "Logs",
+    href: "/dashboard/admin/logs",
     icon: FileClock,
   },
-]
+];
 
 export function AdminSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const isItemActive = (href: string) => {
-    if (href === '/dashboard/admin') {
-      return pathname === href
+    if (href === "/dashboard/admin") {
+      return pathname === href;
     }
 
-    return pathname === href || pathname.startsWith(`${href}/`)
-  }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <Sidebar>
@@ -91,5 +98,5 @@ export function AdminSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

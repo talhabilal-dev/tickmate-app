@@ -1,41 +1,45 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { adminApi, authApi, getApiErrorMessage } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { UsersTable, type AdminUserRow, type UserRole } from '@/components/admin/user-table'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { LogOut, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { adminApi, authApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import {
+  UsersTable,
+  type AdminUserRow,
+  type UserRole,
+} from "@/components/admin/user-table";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogOut, Search } from "lucide-react";
 
 export default function AdminUsersPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [users, setUsers] = useState<AdminUserRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const router = useRouter();
+  const { toast } = useToast();
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const filteredUsers = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (!term) return users
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return users;
 
     return users.filter(
       (user) =>
         user.name.toLowerCase().includes(term) ||
         user.email.toLowerCase().includes(term) ||
-        user.username.toLowerCase().includes(term)
-    )
-  }, [users, searchTerm])
+        user.username.toLowerCase().includes(term),
+    );
+  }, [users, searchTerm]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setIsLoading(true)
-        const response = await adminApi.getUsers()
+        setIsLoading(true);
+        const response = await adminApi.getUsers();
         const normalizedUsers = Array.isArray(response.users)
           ? response.users.map((user) => ({
               id: user.id,
@@ -46,42 +50,45 @@ export default function AdminUsersPage() {
               isActive: user.isActive,
               createdAt: user.createdAt,
             }))
-          : []
-        setUsers(normalizedUsers)
+          : [];
+        setUsers(normalizedUsers);
       } catch (error) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load users'),
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: getApiErrorMessage(error, "Failed to load users"),
+          variant: "destructive",
+        });
 
-        if ((error as any)?.response?.status === 401 || (error as any)?.response?.status === 403) {
-          router.push('/auth/signin')
+        if (
+          (error as any)?.response?.status === 401 ||
+          (error as any)?.response?.status === 403
+        ) {
+          router.push("/auth/signin");
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchUsers()
-  }, [router, toast])
+    fetchUsers();
+  }, [router, toast]);
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
-      router.push('/auth/signin')
+      await authApi.logout();
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   const handleUserUpdated = async (payload: {
-    userId: number
-    role: UserRole
-    isActive: boolean
+    userId: number;
+    role: UserRole;
+    isActive: boolean;
   }) => {
-    const response = await adminApi.updateUser(payload)
-    const updatedUser = response.user
+    const response = await adminApi.updateUser(payload);
+    const updatedUser = response.user;
 
     setUsers((prev) =>
       prev.map((user) =>
@@ -91,25 +98,25 @@ export default function AdminUsersPage() {
               role: updatedUser.role,
               isActive: updatedUser.isActive,
             }
-          : user
-      )
-    )
+          : user,
+      ),
+    );
 
     toast({
-      title: 'Success',
-      description: 'User updated successfully',
-    })
-  }
+      title: "Success",
+      description: "User updated successfully",
+    });
+  };
 
   const handleUserDeleted = async (userId: number) => {
-    await adminApi.deleteUser(userId)
-    setUsers((prev) => prev.filter((user) => user.id !== userId))
+    await adminApi.deleteUser(userId);
+    setUsers((prev) => prev.filter((user) => user.id !== userId));
 
     toast({
-      title: 'Success',
-      description: 'User deleted successfully',
-    })
-  }
+      title: "Success",
+      description: "User deleted successfully",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 relative overflow-hidden">
@@ -121,13 +128,22 @@ export default function AdminUsersPage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">User Management</h1>
-              <p className="text-sm text-muted-foreground">Update user roles, status, and account access</p>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                User Management
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Update user roles, status, and account access
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="border-primary/30"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -166,5 +182,5 @@ export default function AdminUsersPage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }

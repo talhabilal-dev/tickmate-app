@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { resetPasswordSchema, type ResetPasswordData } from '@/lib/schemas';
-import { getApiErrorMessage, userApi } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { resetPasswordSchema, type ResetPasswordData } from "@/lib/schemas";
+import { getApiErrorMessage, userApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Lock, Eye, EyeOff } from "lucide-react";
 
 export function ChangePasswordDialog() {
   const [open, setOpen] = useState(false);
@@ -46,16 +46,16 @@ export function ChangePasswordDialog() {
         newPassword: data.newPassword,
       });
       toast({
-        title: 'Success',
-        description: 'Password changed successfully',
+        title: "Success",
+        description: "Password changed successfully",
       });
       reset();
       setOpen(false);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to change password'),
-        variant: 'destructive',
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to change password"),
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -90,14 +90,14 @@ export function ChangePasswordDialog() {
             <div className="relative">
               <Input
                 id="currentPassword"
-                type={showPasswords.current ? 'text' : 'password'}
-                {...register('currentPassword')}
+                type={showPasswords.current ? "text" : "password"}
+                {...register("currentPassword")}
                 placeholder="Enter your current password"
                 disabled={isLoading}
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('current')}
+                onClick={() => togglePasswordVisibility("current")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={isLoading}
               >
@@ -109,7 +109,9 @@ export function ChangePasswordDialog() {
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="text-sm text-destructive">{errors.currentPassword.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.currentPassword.message}
+              </p>
             )}
           </div>
 
@@ -119,14 +121,14 @@ export function ChangePasswordDialog() {
             <div className="relative">
               <Input
                 id="newPassword"
-                type={showPasswords.new ? 'text' : 'password'}
-                {...register('newPassword')}
+                type={showPasswords.new ? "text" : "password"}
+                {...register("newPassword")}
                 placeholder="Enter your new password"
                 disabled={isLoading}
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('new')}
+                onClick={() => togglePasswordVisibility("new")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={isLoading}
               >
@@ -138,7 +140,9 @@ export function ChangePasswordDialog() {
               </button>
             </div>
             {errors.newPassword && (
-              <p className="text-sm text-destructive">{errors.newPassword.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.newPassword.message}
+              </p>
             )}
           </div>
 
@@ -148,14 +152,14 @@ export function ChangePasswordDialog() {
             <div className="relative">
               <Input
                 id="confirmPassword"
-                type={showPasswords.confirm ? 'text' : 'password'}
-                {...register('confirmPassword')}
+                type={showPasswords.confirm ? "text" : "password"}
+                {...register("confirmPassword")}
                 placeholder="Confirm your new password"
                 disabled={isLoading}
               />
               <button
                 type="button"
-                onClick={() => togglePasswordVisibility('confirm')}
+                onClick={() => togglePasswordVisibility("confirm")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={isLoading}
               >
@@ -167,7 +171,9 @@ export function ChangePasswordDialog() {
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
@@ -182,8 +188,12 @@ export function ChangePasswordDialog() {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 ai-button" disabled={isLoading}>
-              {isLoading ? 'Updating...' : 'Update Password'}
+            <Button
+              type="submit"
+              className="flex-1 ai-button"
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating..." : "Update Password"}
             </Button>
           </div>
         </form>

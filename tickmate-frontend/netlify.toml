@@ -1,0 +1,8 @@
+[build]
+    base ="tickmate-frontend"
+    publish = "tickmate-frontend/.next"
+    command = "npm run build"
+
+
+[[plugins]]
+    package = "@netlify/plugin-nextjs"

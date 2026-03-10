@@ -1,21 +1,29 @@
-'use client'
+"use client";
 
-import { useSearchParams } from 'next/navigation'
-import { AlertCircle } from 'lucide-react'
-import Link from 'next/link'
-import ResetPasswordForm from '@/components/auth/reset-password-form'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useSearchParams } from "next/navigation";
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import ResetPasswordForm from "@/components/auth/reset-password-form";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function ResetPasswordPageContent() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
 
   if (!token) {
     return (
       <Card className="w-full max-w-md border-primary/20 shadow-lg ai-glow">
         <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl font-bold">Invalid Reset Link</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Invalid Reset Link
+          </CardTitle>
           <CardDescription>
             This reset link is missing a token or is malformed.
           </CardDescription>
@@ -31,8 +39,8 @@ export default function ResetPasswordPageContent() {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
-  return <ResetPasswordForm token={token} />
+  return <ResetPasswordForm token={token} />;
 }

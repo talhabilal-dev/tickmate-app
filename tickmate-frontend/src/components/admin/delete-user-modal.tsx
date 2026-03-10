@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   AlertDialog,
@@ -9,20 +9,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from "@/components/ui/alert-dialog";
 
 type User = {
-  id: number
-  name: string
-  email: string
-}
+  id: number;
+  name: string;
+  email: string;
+};
 
 interface DeleteUserModalProps {
-  open: boolean
-  user: User | null
-  onOpenChange: (open: boolean) => void
-  onDelete: (userId: number) => Promise<void> | void
-  isDeleting: boolean
+  open: boolean;
+  user: User | null;
+  onOpenChange: (open: boolean) => void;
+  onDelete: (userId: number) => Promise<void> | void;
+  isDeleting: boolean;
 }
 
 export function DeleteUserModal({
@@ -38,7 +38,7 @@ export function DeleteUserModal({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete user account?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete{' '}
+            This action cannot be undone. This will permanently delete{" "}
             <span className="font-medium">{user?.name}</span> ({user?.email}).
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -47,15 +47,15 @@ export function DeleteUserModal({
           <AlertDialogAction
             disabled={isDeleting || !user}
             onClick={(event) => {
-              event.preventDefault()
-              if (!user) return
-              void onDelete(user.id)
+              event.preventDefault();
+              if (!user) return;
+              void onDelete(user.id);
             }}
           >
-            {isDeleting ? 'Deleting...' : 'Delete User'}
+            {isDeleting ? "Deleting..." : "Delete User"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

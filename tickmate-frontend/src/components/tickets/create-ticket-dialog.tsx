@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import type { z, ZodAny, ZodSchema } from 'zod';
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z, ZodAny, ZodSchema } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -11,16 +11,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { getApiErrorMessage, ticketApi } from '@/lib/api';
-import { createTicketSchema, CreateTicketData, TicketResponse } from '@/lib/schemas';
-import { cn } from '@/lib/utils';
-import { Plus, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { getApiErrorMessage, ticketApi } from "@/lib/api";
+import {
+  createTicketSchema,
+  CreateTicketData,
+  TicketResponse,
+} from "@/lib/schemas";
+import { cn } from "@/lib/utils";
+import { Plus, Search, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface CreateTicketDialogProps {
   onTicketCreated?: (ticket: TicketResponse) => void;
@@ -43,7 +53,7 @@ export function CreateTicketDialog({
   prefillNonce,
 }: CreateTicketDialogProps) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'search' | 'create'>('search');
+  const [step, setStep] = useState<"search" | "create">("search");
   const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -58,44 +68,46 @@ export function CreateTicketDialog({
     setValue,
   } = useForm<CreateTicketFormData>({
     resolver: zodResolver(createTicketSchema as any),
-    mode: 'onChange',
+    mode: "onChange",
   });
 
-  const title = watch('title');
-  const description = watch('description');
-  const category = watch('category');
+  const title = watch("title");
+  const description = watch("description");
+  const category = watch("category");
 
   useEffect(() => {
-    if (!prefill || typeof prefillNonce === 'undefined') {
+    if (!prefill || typeof prefillNonce === "undefined") {
       return;
     }
 
     if (prefill.title) {
-      setValue('title', prefill.title, { shouldValidate: true });
+      setValue("title", prefill.title, { shouldValidate: true });
     }
 
     if (prefill.description) {
-      setValue('description', prefill.description, { shouldValidate: true });
+      setValue("description", prefill.description, { shouldValidate: true });
     }
 
     if (prefill.category) {
-      setValue('category', prefill.category, { shouldValidate: true });
+      setValue("category", prefill.category, { shouldValidate: true });
     }
 
     if (prefill.relatedSkills && prefill.relatedSkills.length > 0) {
-      setValue('relatedSkills', prefill.relatedSkills, { shouldValidate: true });
+      setValue("relatedSkills", prefill.relatedSkills, {
+        shouldValidate: true,
+      });
     }
 
     setOpen(true);
-    setStep('create');
+    setStep("create");
   }, [prefill, prefillNonce, setValue]);
 
   const handleSearchSimilar = async () => {
     if (!title || !description) {
       toast({
-        title: 'Error',
-        description: 'Please enter title and description',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter title and description",
+        variant: "destructive",
       });
       return;
     }
@@ -110,11 +122,14 @@ export function CreateTicketDialog({
       });
       setSimilarTickets(response.tickets || []);
     } catch (error: any) {
-      console.log('[v0] Search similar tickets error:', error);
+      console.log("[v0] Search similar tickets error:", error);
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
-        variant: 'destructive',
+        title: "Error",
+        description: getApiErrorMessage(
+          error,
+          "Failed to search similar tickets",
+        ),
+        variant: "destructive",
       });
     } finally {
       setIsSearching(false);
@@ -127,20 +142,20 @@ export function CreateTicketDialog({
       const payload = createTicketSchema.parse(data);
       const response = await ticketApi.createTicket(payload);
       toast({
-        title: 'Success',
-        description: 'Ticket created successfully',
+        title: "Success",
+        description: "Ticket created successfully",
       });
       onTicketCreated?.(response.ticket);
       setOpen(false);
-      setStep('search');
+      setStep("search");
       reset();
       setSimilarTickets([]);
     } catch (error: any) {
-      console.log('[v0] Create ticket error:', error);
+      console.log("[v0] Create ticket error:", error);
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to create ticket'),
-        variant: 'destructive',
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to create ticket"),
+        variant: "destructive",
       });
     } finally {
       setIsCreating(false);
@@ -148,28 +163,31 @@ export function CreateTicketDialog({
   };
 
   const handleSkipToCreate = () => {
-    setStep('create');
+    setStep("create");
   };
 
   const handleBackToSearch = () => {
-    setStep('search');
+    setStep("search");
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className={cn('ai-button font-semibold', triggerClassName)}>
+        <Button className={cn("ai-button font-semibold", triggerClassName)}>
           <Plus className="w-4 h-4 mr-2" />
           Create Ticket
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        {step === 'search' ? (
+        {step === "search" ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-gradient-ai">Search Similar Tickets</DialogTitle>
+              <DialogTitle className="text-gradient-ai">
+                Search Similar Tickets
+              </DialogTitle>
               <DialogDescription>
-                Let us help you find existing solutions before creating a new ticket
+                Let us help you find existing solutions before creating a new
+                ticket
               </DialogDescription>
             </DialogHeader>
 
@@ -179,10 +197,12 @@ export function CreateTicketDialog({
                 <label className="text-sm font-semibold">Ticket Title</label>
                 <Input
                   placeholder="e.g., How to integrate authentication"
-                  {...register('title')}
+                  {...register("title")}
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive">{errors.title.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.title.message}
+                  </p>
                 )}
               </div>
 
@@ -192,19 +212,23 @@ export function CreateTicketDialog({
                 <Textarea
                   placeholder="Describe your issue or question in detail..."
                   rows={4}
-                  {...register('description')}
+                  {...register("description")}
                 />
                 {errors.description && (
-                  <p className="text-sm text-destructive">{errors.description.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.description.message}
+                  </p>
                 )}
               </div>
 
               {/* Category Select */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Category (Optional)</label>
+                <label className="text-sm font-semibold">
+                  Category (Optional)
+                </label>
                 <Input
                   placeholder="e.g., Feature Request, Bug, Question"
-                  {...register('category')}
+                  {...register("category")}
                 />
               </div>
 
@@ -216,21 +240,29 @@ export function CreateTicketDialog({
                 variant="outline"
               >
                 <Search className="w-4 h-4 mr-2" />
-                {isSearching ? 'Searching...' : 'Search Similar Tickets'}
+                {isSearching ? "Searching..." : "Search Similar Tickets"}
               </Button>
 
               {/* Similar Tickets Results */}
               {similarTickets.length > 0 && (
                 <div className="space-y-3 border-t pt-4">
-                  <h3 className="font-semibold">Found {similarTickets.length} Similar Ticket(s)</h3>
+                  <h3 className="font-semibold">
+                    Found {similarTickets.length} Similar Ticket(s)
+                  </h3>
                   {similarTickets.map((ticket) => (
-                    <Card key={ticket.id} className="border-primary/10 cursor-default">
+                    <Card
+                      key={ticket.id}
+                      className="border-primary/10 cursor-default"
+                    >
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div>
-                            <CardTitle className="text-sm">{ticket.title}</CardTitle>
+                            <CardTitle className="text-sm">
+                              {ticket.title}
+                            </CardTitle>
                             <CardDescription className="text-xs mt-1">
-                              Category: {ticket.category} • Status: {ticket.status}
+                              Category: {ticket.category} • Status:{" "}
+                              {ticket.status}
                             </CardDescription>
                           </div>
                           <CheckCircle2 className="w-5 h-5 text-green-500 mt-1" />
@@ -250,7 +282,8 @@ export function CreateTicketDialog({
                           Found what you need?
                         </p>
                         <p className="text-green-800 dark:text-green-200 mt-1">
-                          Click on a ticket above to view the discussion, or create a new ticket if your issue is different.
+                          Click on a ticket above to view the discussion, or
+                          create a new ticket if your issue is different.
                         </p>
                       </div>
                     </div>
@@ -258,25 +291,33 @@ export function CreateTicketDialog({
                 </div>
               )}
 
-              {isSearching === false && title && description && similarTickets.length === 0 && (
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-blue-900 dark:text-blue-100">
-                        No similar tickets found
-                      </p>
-                      <p className="text-blue-800 dark:text-blue-200 mt-1">
-                        Your issue seems unique. Let's create a new ticket for you.
-                      </p>
+              {isSearching === false &&
+                title &&
+                description &&
+                similarTickets.length === 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex gap-3">
+                      <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">
+                          No similar tickets found
+                        </p>
+                        <p className="text-blue-800 dark:text-blue-200 mt-1">
+                          Your issue seems unique. Let's create a new ticket for
+                          you.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
                 <Button
@@ -292,7 +333,9 @@ export function CreateTicketDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-gradient-ai">Create a New Ticket</DialogTitle>
+              <DialogTitle className="text-gradient-ai">
+                Create a New Ticket
+              </DialogTitle>
               <DialogDescription>
                 Provide details about your issue or request
               </DialogDescription>
@@ -304,10 +347,12 @@ export function CreateTicketDialog({
                 <label className="text-sm font-semibold">Title *</label>
                 <Input
                   placeholder="Brief title of your issue"
-                  {...register('title')}
+                  {...register("title")}
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive">{errors.title.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.title.message}
+                  </p>
                 )}
               </div>
 
@@ -317,10 +362,12 @@ export function CreateTicketDialog({
                 <Textarea
                   placeholder="Provide detailed description..."
                   rows={4}
-                  {...register('description')}
+                  {...register("description")}
                 />
                 {errors.description && (
-                  <p className="text-sm text-destructive">{errors.description.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.description.message}
+                  </p>
                 )}
               </div>
 
@@ -330,10 +377,12 @@ export function CreateTicketDialog({
                   <label className="text-sm font-semibold">Category *</label>
                   <Input
                     placeholder="e.g., Bug, Feature, Question"
-                    {...register('category')}
+                    {...register("category")}
                   />
                   {errors.category && (
-                    <p className="text-sm text-destructive">{errors.category.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.category.message}
+                    </p>
                   )}
                 </div>
 
@@ -341,7 +390,7 @@ export function CreateTicketDialog({
                   <label className="text-sm font-semibold">Priority</label>
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    {...register('priority', {
+                    {...register("priority", {
                       setValueAs: (value) => value || undefined,
                     })}
                   >
@@ -355,10 +404,12 @@ export function CreateTicketDialog({
 
               {/* Deadline */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Deadline (Optional)</label>
+                <label className="text-sm font-semibold">
+                  Deadline (Optional)
+                </label>
                 <Input
                   type="date"
-                  {...register('deadline', {
+                  {...register("deadline", {
                     setValueAs: (value) => value || undefined,
                   })}
                 />
@@ -366,15 +417,17 @@ export function CreateTicketDialog({
 
               {/* Skills */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Related Skills (Optional)</label>
+                <label className="text-sm font-semibold">
+                  Related Skills (Optional)
+                </label>
                 <Input
                   placeholder="Comma-separated skills"
-                  {...register('relatedSkills', {
+                  {...register("relatedSkills", {
                     setValueAs: (value) => {
                       if (!value) return undefined;
 
                       return String(value)
-                        .split(',')
+                        .split(",")
                         .map((skill) => skill.trim())
                         .filter(Boolean);
                     },
@@ -397,7 +450,7 @@ export function CreateTicketDialog({
                   disabled={isCreating || !isValid}
                   className="flex-1 ai-button"
                 >
-                  {isCreating ? 'Creating...' : 'Create Ticket'}
+                  {isCreating ? "Creating..." : "Create Ticket"}
                 </Button>
               </div>
             </form>

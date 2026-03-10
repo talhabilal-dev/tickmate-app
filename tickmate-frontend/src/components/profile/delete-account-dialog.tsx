@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { userApi, getApiErrorMessage } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { userApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,35 +15,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { Trash2 } from 'lucide-react'
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 export function DeleteAccountDialog() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
-      setIsDeleting(true)
-      await userApi.deleteAccount()
+      setIsDeleting(true);
+      await userApi.deleteAccount();
 
       toast({
-        title: 'Account deleted',
-        description: 'Your account has been permanently deleted.',
-      })
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
+      });
 
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     } catch (error) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to delete account'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to delete account"),
+        variant: "destructive",
+      });
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   return (
     <AlertDialog>
@@ -58,7 +58,8 @@ export function DeleteAccountDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete your account?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action is permanent. Your profile will be removed and you will lose access to this account.
+            This action is permanent. Your profile will be removed and you will
+            lose access to this account.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -66,14 +67,14 @@ export function DeleteAccountDialog() {
           <AlertDialogAction
             disabled={isDeleting}
             onClick={(event) => {
-              event.preventDefault()
-              void handleDeleteAccount()
+              event.preventDefault();
+              void handleDeleteAccount();
             }}
           >
-            {isDeleting ? 'Deleting...' : 'Delete Account'}
+            {isDeleting ? "Deleting..." : "Delete Account"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

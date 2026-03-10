@@ -1,26 +1,38 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import Link from 'next/link';
-import { adminApi, authApi, getApiErrorMessage } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
-import { LogOut, Users, BarChart3, AlertCircle, Ticket } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { adminApi, authApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { LogOut, Users, BarChart3, AlertCircle, Ticket } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
-  const [users, setUsers] = useState<Array<{ id: number; role: 'user' | 'moderator' | 'admin'; isActive: boolean }>>([]);
+  const [users, setUsers] = useState<
+    Array<{
+      id: number;
+      role: "user" | "moderator" | "admin";
+      isActive: boolean;
+    }>
+  >([]);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
 
   const stats = useMemo(() => {
     const totalUsers = users.length;
     const activeUsers = users.filter((user) => user.isActive).length;
-    const moderators = users.filter((user) => user.role === 'moderator').length;
+    const moderators = users.filter((user) => user.role === "moderator").length;
 
     return { totalUsers, activeUsers, moderators };
   }, [users]);
@@ -40,9 +52,9 @@ export default function AdminDashboard() {
         setUsers(normalizedUsers);
       } catch (error) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load users'),
-          variant: 'destructive',
+          title: "Error",
+          description: getApiErrorMessage(error, "Failed to load users"),
+          variant: "destructive",
         });
       } finally {
         setIsUsersLoading(false);
@@ -55,10 +67,10 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await authApi.logout();
-      router.push('/auth/signin');
+      router.push("/auth/signin");
     } catch (error) {
-      console.error('Logout failed:', error);
-      router.push('/auth/signin');
+      console.error("Logout failed:", error);
+      router.push("/auth/signin");
     }
   };
 
@@ -74,13 +86,22 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">Admin Control Panel</h1>
-              <p className="text-sm text-muted-foreground">Manage system and users</p>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                Admin Control Panel
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Manage system and users
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="border-primary/30"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -96,7 +117,9 @@ export default function AdminDashboard() {
             <AlertCircle className="w-6 h-6 text-secondary shrink-0" />
             <div>
               <p className="font-semibold">System Status</p>
-              <p className="text-sm text-muted-foreground">All systems operational</p>
+              <p className="text-sm text-muted-foreground">
+                All systems operational
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -114,7 +137,9 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">View and manage all users</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                View and manage all users
+              </p>
               <Button className="w-full ai-button" size="sm" asChild>
                 <Link href="/dashboard/admin/users">Manage Users</Link>
               </Button>
@@ -132,7 +157,9 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">View system analytics and reports</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                View system analytics and reports
+              </p>
               <Button className="w-full ai-button" size="sm" asChild>
                 <Link href="/dashboard/admin/ai-usage">View AI Usage</Link>
               </Button>
@@ -150,7 +177,9 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">Toggle ticket status and delete tickets</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Toggle ticket status and delete tickets
+              </p>
               <Button className="w-full ai-button" size="sm" asChild>
                 <Link href="/dashboard/admin/tickets">Manage Tickets</Link>
               </Button>
@@ -168,7 +197,9 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">View system logs and events</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                View system logs and events
+              </p>
               <Button className="w-full ai-button" size="sm" asChild>
                 <Link href="/dashboard/admin/logs">View Logs</Link>
               </Button>
@@ -181,22 +212,30 @@ export default function AdminDashboard() {
           <h3 className="text-xl font-bold mb-6">System Overview</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { label: 'Total Users', value: String(stats.totalUsers) },
-              { label: 'Active Users', value: String(stats.activeUsers) },
-              { label: 'Moderators', value: String(stats.moderators) },
-              { label: 'System Uptime', value: '100%' },
+              { label: "Total Users", value: String(stats.totalUsers) },
+              { label: "Active Users", value: String(stats.activeUsers) },
+              { label: "Moderators", value: String(stats.moderators) },
+              { label: "System Uptime", value: "100%" },
             ].map((stat) => (
               <Card key={stat.label} className="border-primary/10">
                 <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gradient-ai">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-bold text-gradient-ai">
+                    {stat.value}
+                  </p>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
 
-        {isUsersLoading && <p className="text-sm text-muted-foreground mt-10">Refreshing overview stats...</p>}
+        {isUsersLoading && (
+          <p className="text-sm text-muted-foreground mt-10">
+            Refreshing overview stats...
+          </p>
+        )}
       </main>
     </div>
   );

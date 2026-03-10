@@ -1,25 +1,33 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { authApi } from '@/lib/api'
-import { forgotPasswordSchema, ForgotPasswordData } from '@/lib/schemas'
-import Link from 'next/link'
-import { Mail, ArrowLeft } from 'lucide-react'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { authApi } from "@/lib/api";
+import { forgotPasswordSchema, ForgotPasswordData } from "@/lib/schemas";
+import Link from "next/link";
+import { Mail, ArrowLeft } from "lucide-react";
 
 interface ForgotPasswordFormProps {
-  onSuccess?: () => void
+  onSuccess?: () => void;
 }
 
-export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+export default function ForgotPasswordForm({
+  onSuccess,
+}: ForgotPasswordFormProps) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const {
     register,
@@ -27,31 +35,32 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
     formState: { errors },
   } = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema as any),
-  })
+  });
 
   const onSubmit = async (data: ForgotPasswordData) => {
     try {
-      setIsLoading(true)
-      const response = await authApi.forgotPassword(data)
-      
+      setIsLoading(true);
+      const response = await authApi.forgotPassword(data);
+
       toast({
-        title: 'Success',
-        description: 'Check your email for a password reset link',
-      })
-      
-      setSubmitted(true)
-      onSuccess?.()
+        title: "Success",
+        description: "Check your email for a password reset link",
+      });
+
+      setSubmitted(true);
+      onSuccess?.();
     } catch (error: any) {
-      console.log('[v0] Forgot password error:', error)
+      console.log("[v0] Forgot password error:", error);
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to send reset email',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to send reset email",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (submitted) {
     return (
@@ -72,10 +81,12 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
 
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Click the link in the email to reset your password. The link will expire in 24 hours.
+            Click the link in the email to reset your password. The link will
+            expire in 24 hours.
           </p>
           <p className="text-sm text-muted-foreground">
-            If you don't see the email, check your spam folder or contact support.
+            If you don't see the email, check your spam folder or contact
+            support.
           </p>
 
           <Button asChild className="w-full ai-button font-semibold text-base">
@@ -86,7 +97,7 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -98,7 +109,9 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
             Reset Password
           </CardTitle>
         </div>
-        <CardDescription>Enter your email to receive a password reset link</CardDescription>
+        <CardDescription>
+          Enter your email to receive a password reset link
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -109,7 +122,7 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
             <Input
               type="email"
               placeholder="your@email.com"
-              {...register('email')}
+              {...register("email")}
               disabled={isLoading}
               className="bg-background"
             />
@@ -124,18 +137,21 @@ export default function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProp
             className="w-full ai-button font-semibold text-base"
             disabled={isLoading}
           >
-            {isLoading ? 'Sending...' : 'Send Reset Link'}
+            {isLoading ? "Sending..." : "Send Reset Link"}
           </Button>
 
           {/* Back to Sign In */}
           <p className="text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
-            <Link href="/auth/signin" className="text-primary hover:underline font-medium">
+            Remember your password?{" "}
+            <Link
+              href="/auth/signin"
+              className="text-primary hover:underline font-medium"
+            >
               Sign In
             </Link>
           </p>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,129 +1,137 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { CreateTicketDialog } from '@/components/tickets/create-ticket-dialog'
-import { TicketCard } from '@/components/tickets/ticket-card'
-import { authApi, getApiErrorMessage, ticketApi } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { TicketResponse } from '@/lib/schemas'
-import { AlertCircle, LogOut, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { CreateTicketDialog } from "@/components/tickets/create-ticket-dialog";
+import { TicketCard } from "@/components/tickets/ticket-card";
+import { authApi, getApiErrorMessage, ticketApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { TicketResponse } from "@/lib/schemas";
+import { AlertCircle, LogOut, Search } from "lucide-react";
 
 export default function PublicTicketsPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [tickets, setTickets] = useState<TicketResponse[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [skillsInput, setSkillsInput] = useState('')
-  const [searchDescription, setSearchDescription] = useState('')
-  const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([])
-  const [isSearchingSimilar, setIsSearchingSimilar] = useState(false)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [tickets, setTickets] = useState<TicketResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [skillsInput, setSkillsInput] = useState("");
+  const [searchDescription, setSearchDescription] = useState("");
+  const [similarTickets, setSimilarTickets] = useState<TicketResponse[]>([]);
+  const [isSearchingSimilar, setIsSearchingSimilar] = useState(false);
   const [prefillTicket, setPrefillTicket] = useState<{
-    title?: string
-    description?: string
-    category?: string
-    relatedSkills?: string[]
-  } | null>(null)
-  const [prefillNonce, setPrefillNonce] = useState(0)
+    title?: string;
+    description?: string;
+    category?: string;
+    relatedSkills?: string[];
+  } | null>(null);
+  const [prefillNonce, setPrefillNonce] = useState(0);
 
-  const fetchTickets = async (filters?: { category?: string; skills?: string[] }) => {
+  const fetchTickets = async (filters?: {
+    category?: string;
+    skills?: string[];
+  }) => {
     try {
-      setIsLoading(true)
-      const response = await ticketApi.getPublicCompletedTickets(filters)
-      setTickets(Array.isArray(response.tickets) ? response.tickets : [])
+      setIsLoading(true);
+      const response = await ticketApi.getPublicCompletedTickets(filters);
+      setTickets(Array.isArray(response.tickets) ? response.tickets : []);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to load public tickets'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to load public tickets"),
+        variant: "destructive",
+      });
 
       // Keep existing auth redirect behavior.
       if ((error as any)?.response?.status === 401) {
-        router.push('/auth/signin')
+        router.push("/auth/signin");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchTickets()
-  }, [])
+    fetchTickets();
+  }, []);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(tickets.map((ticket) => ticket.category))).sort((a, b) =>
-      a.localeCompare(b),
-    )
-  }, [tickets])
+    return Array.from(new Set(tickets.map((ticket) => ticket.category))).sort(
+      (a, b) => a.localeCompare(b),
+    );
+  }, [tickets]);
 
   const applyFilters = () => {
     const parsedSkills = skillsInput
-      .split(',')
+      .split(",")
       .map((skill) => skill.trim())
-      .filter(Boolean)
+      .filter(Boolean);
 
-    const filters: { category?: string; skills?: string[] } = {}
+    const filters: { category?: string; skills?: string[] } = {};
 
     if (selectedCategory) {
-      filters.category = selectedCategory
+      filters.category = selectedCategory;
     }
 
     if (parsedSkills.length > 0) {
-      filters.skills = parsedSkills
+      filters.skills = parsedSkills;
     }
 
-    fetchTickets(filters)
-  }
+    fetchTickets(filters);
+  };
 
   const clearFilters = () => {
-    setSelectedCategory('')
-    setSkillsInput('')
-    fetchTickets()
-  }
+    setSelectedCategory("");
+    setSkillsInput("");
+    fetchTickets();
+  };
 
   const handleSearchByDescription = async () => {
     if (!searchDescription.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a description to search similar tickets',
-        variant: 'destructive',
-      })
-      return
+        title: "Error",
+        description: "Please enter a description to search similar tickets",
+        variant: "destructive",
+      });
+      return;
     }
 
     try {
-      setIsSearchingSimilar(true)
-      const queryText = searchDescription.trim()
+      setIsSearchingSimilar(true);
+      const queryText = searchDescription.trim();
       const response = await ticketApi.searchSimilarTickets({
         title: queryText.slice(0, 80),
         description: queryText,
         limit: 5,
-      })
-      setSimilarTickets(Array.isArray(response.tickets) ? response.tickets : [])
+      });
+      setSimilarTickets(
+        Array.isArray(response.tickets) ? response.tickets : [],
+      );
     } catch (error) {
       toast({
-        title: 'Error',
-        description: getApiErrorMessage(error, 'Failed to search similar tickets'),
-        variant: 'destructive',
-      })
+        title: "Error",
+        description: getApiErrorMessage(
+          error,
+          "Failed to search similar tickets",
+        ),
+        variant: "destructive",
+      });
     } finally {
-      setIsSearchingSimilar(false)
+      setIsSearchingSimilar(false);
     }
-  }
+  };
 
   const handleClearSimilarSearch = () => {
-    setSearchDescription('')
-    setSimilarTickets([])
-  }
+    setSearchDescription("");
+    setSimilarTickets([]);
+  };
 
   const handleCreateFromSimilar = (ticket: TicketResponse) => {
     setPrefillTicket({
@@ -131,39 +139,41 @@ export default function PublicTicketsPage() {
       description: ticket.description,
       category: ticket.category,
       relatedSkills: ticket.relatedSkills,
-    })
-    setPrefillNonce((value) => value + 1)
-  }
+    });
+    setPrefillNonce((value) => value + 1);
+  };
 
   const handleTicketCreated = () => {
     toast({
-      title: 'Success',
-      description: 'Ticket created from selected template',
-    })
-  }
+      title: "Success",
+      description: "Ticket created from selected template",
+    });
+  };
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
+      await authApi.logout();
       toast({
-        title: 'Success',
-        description: 'Logged out successfully',
-      })
-      router.push('/auth/signin')
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 rounded-full gradient-ai mx-auto mb-4 animate-pulse"></div>
-          <p className="text-muted-foreground">Loading public completed tickets...</p>
+          <p className="text-muted-foreground">
+            Loading public completed tickets...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -176,12 +186,19 @@ export default function PublicTicketsPage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">Public Completed Tickets</h1>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                Public Completed Tickets
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="border-primary/30"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -193,7 +210,9 @@ export default function PublicTicketsPage() {
         <Card className="border-primary/10">
           <CardContent className="pt-6 space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-semibold">Search Similar Tickets By Description</p>
+              <p className="text-sm font-semibold">
+                Search Similar Tickets By Description
+              </p>
               <CreateTicketDialog
                 onTicketCreated={handleTicketCreated}
                 triggerClassName="w-full sm:w-auto"
@@ -208,9 +227,13 @@ export default function PublicTicketsPage() {
               rows={3}
             />
             <div className="flex gap-2">
-              <Button onClick={handleSearchByDescription} disabled={isSearchingSimilar} variant="outline">
+              <Button
+                onClick={handleSearchByDescription}
+                disabled={isSearchingSimilar}
+                variant="outline"
+              >
                 <Search className="w-4 h-4 mr-2" />
-                {isSearchingSimilar ? 'Searching...' : 'Find Similar'}
+                {isSearchingSimilar ? "Searching..." : "Find Similar"}
               </Button>
               <Button variant="ghost" onClick={handleClearSimilarSearch}>
                 Clear
@@ -222,7 +245,10 @@ export default function PublicTicketsPage() {
                 <p className="text-sm font-semibold">Similar Tickets</p>
                 <div className="space-y-2">
                   {similarTickets.map((ticket) => (
-                    <div key={ticket.id} className="rounded-md border border-primary/10 p-3">
+                    <div
+                      key={ticket.id}
+                      className="rounded-md border border-primary/10 p-3"
+                    >
                       <p className="font-medium">{ticket.title}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Category: {ticket.category} • Status: {ticket.status}
@@ -297,7 +323,9 @@ export default function PublicTicketsPage() {
                   <AlertCircle className="w-8 h-8 text-primary" />
                 </div>
               </div>
-              <p className="text-muted-foreground mb-2">No public completed tickets found</p>
+              <p className="text-muted-foreground mb-2">
+                No public completed tickets found
+              </p>
               <p className="text-sm text-muted-foreground">
                 Try adjusting category or skills filters.
               </p>
@@ -312,5 +340,5 @@ export default function PublicTicketsPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

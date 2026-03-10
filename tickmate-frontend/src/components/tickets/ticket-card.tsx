@@ -1,18 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { TicketResponse } from '@/lib/schemas';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { useState } from "react";
+import { TicketResponse } from "@/lib/schemas";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Trash2, Edit, Clock, CheckCircle2, Eye } from 'lucide-react';
+} from "@/components/ui/alert-dialog";
+import { Trash2, Edit, Clock, CheckCircle2, Eye } from "lucide-react";
 
 interface TicketCardProps {
   ticket: TicketResponse;
@@ -42,15 +48,18 @@ type TicketReplyItem = {
 };
 
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200',
-  in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
-  completed: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200',
+  pending:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200",
+  in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
+  completed:
+    "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
 };
 
 const priorityColors = {
-  low: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-  medium: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200',
-  high: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200',
+  low: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  medium:
+    "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200",
+  high: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
 };
 
 export function TicketCard({
@@ -62,11 +71,11 @@ export function TicketCard({
   isCompleting = false,
 }: TicketCardProps) {
   const [showDetails, setShowDetails] = useState(false);
-  const [replyMessage, setReplyMessage] = useState('');
+  const [replyMessage, setReplyMessage] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const deadlineDate = ticket.deadline ? new Date(ticket.deadline) : null;
   const isOverdue = deadlineDate && deadlineDate < new Date();
-  const isCompleted = ticket.status === 'completed';
+  const isCompleted = ticket.status === "completed";
   const replies = Array.isArray((ticket as any).replies)
     ? ((ticket as any).replies as TicketReplyItem[])
     : [];
@@ -78,7 +87,7 @@ export function TicketCard({
     try {
       setIsReplying(true);
       await onReply(ticket.id, message);
-      setReplyMessage('');
+      setReplyMessage("");
     } finally {
       setIsReplying(false);
     }
@@ -117,7 +126,11 @@ export function TicketCard({
               {onDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" aria-label="Delete ticket">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Delete ticket"
+                    >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>
@@ -125,7 +138,8 @@ export function TicketCard({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete this ticket?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete "{ticket.title}".
+                        This action cannot be undone. This will permanently
+                        delete "{ticket.title}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -148,7 +162,7 @@ export function TicketCard({
 
           <div className="flex flex-wrap gap-2">
             <Badge className={statusColors[ticket.status]}>
-              {ticket.status.replace('_', ' ')}
+              {ticket.status.replace("_", " ")}
             </Badge>
             <Badge className={priorityColors[ticket.priority]}>
               {ticket.priority}
@@ -172,7 +186,7 @@ export function TicketCard({
             {deadlineDate && (
               <div className="flex items-center gap-1 ml-auto">
                 <Clock className="w-3 h-3" />
-                <span className={isOverdue ? 'text-red-500' : ''}>
+                <span className={isOverdue ? "text-red-500" : ""}>
                   {deadlineDate.toLocaleDateString()}
                 </span>
               </div>
@@ -185,7 +199,7 @@ export function TicketCard({
               size="sm"
               variant="outline"
               onClick={() => setShowDetails(true)}
-              className={onMarkCompleted ? 'flex-1' : 'w-full'}
+              className={onMarkCompleted ? "flex-1" : "w-full"}
             >
               Show
             </Button>
@@ -198,7 +212,11 @@ export function TicketCard({
                 className="flex-1"
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />
-                {isCompleted ? 'Completed' : isCompleting ? 'Updating...' : 'Mark Completed'}
+                {isCompleted
+                  ? "Completed"
+                  : isCompleting
+                    ? "Updating..."
+                    : "Mark Completed"}
               </Button>
             )}
           </div>
@@ -218,7 +236,9 @@ export function TicketCard({
           <div className="space-y-4 text-sm">
             <div>
               <p className="text-muted-foreground">Description</p>
-              <p className="mt-1 whitespace-pre-wrap wrap-break-word">{ticket.description}</p>
+              <p className="mt-1 whitespace-pre-wrap wrap-break-word">
+                {ticket.description}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -231,20 +251,28 @@ export function TicketCard({
               </div>
               <div>
                 <p className="text-muted-foreground">Status</p>
-                <p>{ticket.status.replace('_', ' ')}</p>
+                <p>{ticket.status.replace("_", " ")}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Deadline</p>
-                <p>{deadlineDate ? deadlineDate.toLocaleDateString() : 'Not set'}</p>
+                <p>
+                  {deadlineDate ? deadlineDate.toLocaleDateString() : "Not set"}
+                </p>
               </div>
             </div>
             <div>
               <p className="text-muted-foreground">Related Skills</p>
-              <p>{ticket.relatedSkills.length ? ticket.relatedSkills.join(', ') : 'None'}</p>
+              <p>
+                {ticket.relatedSkills.length
+                  ? ticket.relatedSkills.join(", ")
+                  : "None"}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Helpful Notes</p>
-              <p className="mt-1 whitespace-pre-wrap wrap-break-word">{ticket.helpfulNotes || 'None'}</p>
+              <p className="mt-1 whitespace-pre-wrap wrap-break-word">
+                {ticket.helpfulNotes || "None"}
+              </p>
             </div>
 
             <div>
@@ -254,10 +282,16 @@ export function TicketCard({
               ) : (
                 <div className="mt-2 space-y-2">
                   {replies.map((reply, index) => (
-                    <div key={`${reply.createdAt}-${index}`} className="rounded-md border p-2">
-                      <p className="whitespace-pre-wrap wrap-break-word">{reply.message}</p>
+                    <div
+                      key={`${reply.createdAt}-${index}`}
+                      className="rounded-md border p-2"
+                    >
+                      <p className="whitespace-pre-wrap wrap-break-word">
+                        {reply.message}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(reply.createdAt).toLocaleString()} by {reply.createdBy}
+                        {new Date(reply.createdAt).toLocaleString()} by{" "}
+                        {reply.createdBy}
                       </p>
                     </div>
                   ))}
@@ -280,7 +314,11 @@ export function TicketCard({
                   onClick={handleReply}
                   disabled={isCompleted || isReplying || !replyMessage.trim()}
                 >
-                  {isReplying ? 'Sending...' : isCompleted ? 'Closed' : 'Send Reply'}
+                  {isReplying
+                    ? "Sending..."
+                    : isCompleted
+                      ? "Closed"
+                      : "Send Reply"}
                 </Button>
               </div>
             )}

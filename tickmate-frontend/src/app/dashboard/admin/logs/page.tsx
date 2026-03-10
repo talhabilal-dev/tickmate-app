@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { adminApi, authApi, getApiErrorMessage } from '@/lib/api'
-import { useToast } from '@/hooks/use-toast'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { adminApi, authApi, getApiErrorMessage } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,81 +15,84 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { LogOut } from 'lucide-react'
+} from "@/components/ui/table";
+import { LogOut } from "lucide-react";
 
 type AuditLogRow = {
-  id: number
-  action: string
-  entityType: string
-  entityId: number | null
-  actorUserId: number | null
-  actorName: string | null
-  targetUserId: number | null
-  targetName: string | null
-  ticketId: number | null
-  assignedFromUserId: number | null
-  assignedFromName: string | null
-  assignedToUserId: number | null
-  assignedToName: string | null
-  description: string | null
-  createdAt: string
-}
+  id: number;
+  action: string;
+  entityType: string;
+  entityId: number | null;
+  actorUserId: number | null;
+  actorName: string | null;
+  targetUserId: number | null;
+  targetName: string | null;
+  ticketId: number | null;
+  assignedFromUserId: number | null;
+  assignedFromName: string | null;
+  assignedToUserId: number | null;
+  assignedToName: string | null;
+  description: string | null;
+  createdAt: string;
+};
 
 export default function AdminLogsPage() {
-  const router = useRouter()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [logs, setLogs] = useState<AuditLogRow[]>([])
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [hasNextPage, setHasNextPage] = useState(false)
-  const [hasPreviousPage, setHasPreviousPage] = useState(false)
+  const [isLoading, setIsLoading] = useState(true);
+  const [logs, setLogs] = useState<AuditLogRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
 
   const handleLogout = async () => {
     try {
-      await authApi.logout()
-      router.push('/auth/signin')
+      await authApi.logout();
+      router.push("/auth/signin");
     } catch (_error) {
-      router.push('/auth/signin')
+      router.push("/auth/signin");
     }
-  }
+  };
 
   useEffect(() => {
     const fetchAuditLogs = async () => {
       try {
-        setIsLoading(true)
+        setIsLoading(true);
 
         const response = await adminApi.getAuditLogs({
           page,
           pageSize,
-        })
+        });
 
-        setLogs(Array.isArray(response.logs) ? response.logs : [])
-        setTotal(response.pagination?.total ?? 0)
-        setTotalPages(response.pagination?.totalPages ?? 1)
-        setHasNextPage(Boolean(response.pagination?.hasNextPage))
-        setHasPreviousPage(Boolean(response.pagination?.hasPreviousPage))
+        setLogs(Array.isArray(response.logs) ? response.logs : []);
+        setTotal(response.pagination?.total ?? 0);
+        setTotalPages(response.pagination?.totalPages ?? 1);
+        setHasNextPage(Boolean(response.pagination?.hasNextPage));
+        setHasPreviousPage(Boolean(response.pagination?.hasPreviousPage));
       } catch (error) {
         toast({
-          title: 'Error',
-          description: getApiErrorMessage(error, 'Failed to load audit logs'),
-          variant: 'destructive',
-        })
+          title: "Error",
+          description: getApiErrorMessage(error, "Failed to load audit logs"),
+          variant: "destructive",
+        });
 
-        if ((error as any)?.response?.status === 401 || (error as any)?.response?.status === 403) {
-          router.push('/auth/signin')
+        if (
+          (error as any)?.response?.status === 401 ||
+          (error as any)?.response?.status === 403
+        ) {
+          router.push("/auth/signin");
         }
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchAuditLogs()
-  }, [page, pageSize, router, toast])
+    fetchAuditLogs();
+  }, [page, pageSize, router, toast]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-accent/5 relative overflow-hidden">
@@ -101,13 +104,22 @@ export default function AdminLogsPage() {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-              <h1 className="text-2xl font-bold text-gradient-ai">Admin Logs</h1>
-              <p className="text-sm text-muted-foreground">Paginated activity history of admin and system actions</p>
+              <h1 className="text-2xl font-bold text-gradient-ai">
+                Admin Logs
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Paginated activity history of admin and system actions
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-primary/30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="border-primary/30"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -120,15 +132,18 @@ export default function AdminLogsPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Audit Logs</CardTitle>
             <div className="flex items-center gap-3">
-              <label className="text-sm text-muted-foreground" htmlFor="pageSize">
+              <label
+                className="text-sm text-muted-foreground"
+                htmlFor="pageSize"
+              >
                 Rows per page
               </label>
               <select
                 id="pageSize"
                 value={pageSize}
                 onChange={(event) => {
-                  setPageSize(Number(event.target.value))
-                  setPage(1)
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
                 }}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
@@ -162,28 +177,40 @@ export default function AdminLogsPage() {
                     <TableRow key={log.id}>
                       <TableCell className="align-top">
                         <div className="leading-tight">
-                          <p className="whitespace-nowrap">{new Date(log.createdAt).toLocaleDateString()}</p>
-                          <p className="whitespace-nowrap text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleTimeString()}</p>
+                          <p className="whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleDateString()}
+                          </p>
+                          <p className="whitespace-nowrap text-xs text-muted-foreground">
+                            {new Date(log.createdAt).toLocaleTimeString()}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium whitespace-normal wrap-break-word align-top">
-                        <p className="line-clamp-2" title={log.action}>{log.action}</p>
-                      </TableCell>
-                      <TableCell className="whitespace-normal wrap-break-word align-top">
-                        {log.entityType}
-                        {log.entityId ? ` #${log.entityId}` : ''}
-                      </TableCell>
-                      <TableCell className="whitespace-normal wrap-break-word align-top">
-                        <p className="line-clamp-2" title={`${log.actorName ?? 'System'}${log.actorUserId ? ` (ID ${log.actorUserId})` : ''}`}>
-                          {log.actorName ?? 'System'}
-                          {log.actorUserId ? ` (ID ${log.actorUserId})` : ''}
+                        <p className="line-clamp-2" title={log.action}>
+                          {log.action}
                         </p>
                       </TableCell>
                       <TableCell className="whitespace-normal wrap-break-word align-top">
-                        <p className="line-clamp-2" title={`${log.targetName ?? 'N/A'}${log.targetUserId ? ` (ID ${log.targetUserId})` : ''}${log.ticketId ? ` | Ticket #${log.ticketId}` : ''}`}>
-                          {log.targetName ?? 'N/A'}
-                          {log.targetUserId ? ` (ID ${log.targetUserId})` : ''}
-                          {log.ticketId ? ` | Ticket #${log.ticketId}` : ''}
+                        {log.entityType}
+                        {log.entityId ? ` #${log.entityId}` : ""}
+                      </TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p
+                          className="line-clamp-2"
+                          title={`${log.actorName ?? "System"}${log.actorUserId ? ` (ID ${log.actorUserId})` : ""}`}
+                        >
+                          {log.actorName ?? "System"}
+                          {log.actorUserId ? ` (ID ${log.actorUserId})` : ""}
+                        </p>
+                      </TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word align-top">
+                        <p
+                          className="line-clamp-2"
+                          title={`${log.targetName ?? "N/A"}${log.targetUserId ? ` (ID ${log.targetUserId})` : ""}${log.ticketId ? ` | Ticket #${log.ticketId}` : ""}`}
+                        >
+                          {log.targetName ?? "N/A"}
+                          {log.targetUserId ? ` (ID ${log.targetUserId})` : ""}
+                          {log.ticketId ? ` | Ticket #${log.ticketId}` : ""}
                         </p>
                       </TableCell>
                       <TableCell className="whitespace-normal wrap-break-word align-top">
@@ -191,17 +218,22 @@ export default function AdminLogsPage() {
                           className="line-clamp-2"
                           title={
                             log.assignedFromUserId || log.assignedToUserId
-                              ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
-                              : 'N/A'
+                              ? `${log.assignedFromName ?? "Unassigned"} -> ${log.assignedToName ?? "Unassigned"}`
+                              : "N/A"
                           }
                         >
                           {log.assignedFromUserId || log.assignedToUserId
-                            ? `${log.assignedFromName ?? 'Unassigned'} -> ${log.assignedToName ?? 'Unassigned'}`
-                            : 'N/A'}
+                            ? `${log.assignedFromName ?? "Unassigned"} -> ${log.assignedToName ?? "Unassigned"}`
+                            : "N/A"}
                         </p>
                       </TableCell>
                       <TableCell className="whitespace-normal wrap-break-word align-top">
-                        <p className="line-clamp-2" title={log.description ?? 'N/A'}>{log.description ?? 'N/A'}</p>
+                        <p
+                          className="line-clamp-2"
+                          title={log.description ?? "N/A"}
+                        >
+                          {log.description ?? "N/A"}
+                        </p>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -237,5 +269,5 @@ export default function AdminLogsPage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }

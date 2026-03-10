@@ -1,27 +1,33 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { authApi } from '@/lib/api'
-import { resetPasswordFormSchema, ResetPasswordFormData } from '@/lib/schemas'
-import Link from 'next/link'
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { authApi } from "@/lib/api";
+import { resetPasswordFormSchema, ResetPasswordFormData } from "@/lib/schemas";
+import Link from "next/link";
+import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
 interface ResetPasswordFormProps {
-  token: string
+  token: string;
 }
 
 export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const {
     register,
@@ -30,35 +36,36 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     watch,
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordFormSchema as any),
-  })
+  });
 
-  const newPassword = watch('newPassword')
+  const newPassword = watch("newPassword");
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await authApi.resetPasswordWithToken({
         token,
         newPassword: data.newPassword,
-      })
+      });
 
       toast({
-        title: 'Success',
-        description: 'Your password has been reset successfully',
-      })
+        title: "Success",
+        description: "Your password has been reset successfully",
+      });
 
-      setSubmitted(true)
+      setSubmitted(true);
     } catch (error: any) {
-      console.log('[v0] Reset password error:', error)
+      console.log("[v0] Reset password error:", error);
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to reset password',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description:
+          error.response?.data?.message || "Failed to reset password",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (submitted) {
     return (
@@ -87,7 +94,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -99,7 +106,9 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             Set New Password
           </CardTitle>
         </div>
-        <CardDescription>Enter a new password to secure your account</CardDescription>
+        <CardDescription>
+          Enter a new password to secure your account
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -109,9 +118,9 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             <label className="text-sm font-medium">New Password</label>
             <div className="relative">
               <Input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter new password"
-                {...register('newPassword')}
+                {...register("newPassword")}
                 disabled={isLoading}
                 className="bg-background pr-10"
               />
@@ -129,22 +138,48 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               </button>
             </div>
             {errors.newPassword && (
-              <p className="text-sm text-destructive">{errors.newPassword.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.newPassword.message}
+              </p>
             )}
             {newPassword && (
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>Password must contain:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li className={newPassword.length >= 6 ? 'text-green-600 dark:text-green-400' : ''}>
+                  <li
+                    className={
+                      newPassword.length >= 6
+                        ? "text-green-600 dark:text-green-400"
+                        : ""
+                    }
+                  >
                     At least 6 characters
                   </li>
-                  <li className={/[A-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
+                  <li
+                    className={
+                      /[A-Z]/.test(newPassword)
+                        ? "text-green-600 dark:text-green-400"
+                        : ""
+                    }
+                  >
                     One uppercase letter
                   </li>
-                  <li className={/[a-z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
+                  <li
+                    className={
+                      /[a-z]/.test(newPassword)
+                        ? "text-green-600 dark:text-green-400"
+                        : ""
+                    }
+                  >
                     One lowercase letter
                   </li>
-                  <li className={/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : ''}>
+                  <li
+                    className={
+                      /[0-9]/.test(newPassword)
+                        ? "text-green-600 dark:text-green-400"
+                        : ""
+                    }
+                  >
                     One number
                   </li>
                 </ul>
@@ -157,9 +192,9 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             <label className="text-sm font-medium">Confirm Password</label>
             <div className="relative">
               <Input
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your password"
-                {...register('confirmPassword')}
+                {...register("confirmPassword")}
                 disabled={isLoading}
                 className="bg-background pr-10"
               />
@@ -177,7 +212,9 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
@@ -187,18 +224,21 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             className="w-full ai-button font-semibold text-base"
             disabled={isLoading}
           >
-            {isLoading ? 'Resetting...' : 'Reset Password'}
+            {isLoading ? "Resetting..." : "Reset Password"}
           </Button>
 
           {/* Back to Sign In */}
           <p className="text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
-            <Link href="/auth/signin" className="text-primary hover:underline font-medium">
+            Remember your password?{" "}
+            <Link
+              href="/auth/signin"
+              className="text-primary hover:underline font-medium"
+            >
               Sign In
             </Link>
           </p>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
