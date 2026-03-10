@@ -31,7 +31,7 @@ export default function SignUpForm() {
     watch,
     reset,
   } = useForm<SignUpData>({
-    resolver: zodResolver(signUpSchema),
+    resolver: zodResolver(signUpSchema as any),
     defaultValues: {
       skills: [],
     },

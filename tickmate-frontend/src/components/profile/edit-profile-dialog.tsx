@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { type UpdateUserData } from '@/lib/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type UpdateUserData, updateUserSchema, UserResponse } from '@/lib/schemas';
 import { authApi, getApiErrorMessage, userApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -17,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit } from 'lucide-react';
-import { UserResponse } from '@/lib/schemas';
 
 interface EditProfileDialogProps {
   user: UserResponse;
@@ -39,6 +39,7 @@ export function EditProfileDialog({ user, onProfileUpdate }: EditProfileDialogPr
     setError,
     clearErrors,
   } = useForm<UpdateUserData>({
+    resolver: zodResolver(updateUserSchema),
     defaultValues: {
       name: user.name,
       username: user.username,

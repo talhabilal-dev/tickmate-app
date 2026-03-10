@@ -47,7 +47,7 @@ export function EditTicketDialog({
     formState: { errors },
     reset,
   } = useForm<EditTicketFormData>({
-    resolver: zodResolver(editTicketSchema as any),
+    resolver: zodResolver(editTicketSchema),
     defaultValues: {
       ticketId: ticket.id,
       title: ticket.title,

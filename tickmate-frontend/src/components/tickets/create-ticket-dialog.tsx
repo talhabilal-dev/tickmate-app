@@ -57,7 +57,7 @@ export function CreateTicketDialog({
     reset,
     setValue,
   } = useForm<CreateTicketFormData>({
-    resolver: zodResolver(createTicketSchema as any),
+    resolver: zodResolver(createTicketSchema),
     mode: 'onChange',
   });
 
