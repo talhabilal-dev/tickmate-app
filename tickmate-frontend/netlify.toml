@@ -1,0 +1,9 @@
+[build]
+  # Command to run from the root
+  command = "npm run build --prefix tickmate-frontend"
+  
+  # Where the final HTML/JS files are located
+  publish = "tickmate-frontend/dist"
+
+  # Optional: Only build if files in this folder or shared packages change
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ../shared-package"
