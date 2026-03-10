@@ -1,6 +1,6 @@
 [build]
     base ="tickmate-frontend"
-    publish = "tickmate-frontend/.next"
+    publish = "/.next"
     command = "npm run build"
 
 
