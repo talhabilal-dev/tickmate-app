@@ -93,6 +93,7 @@ Optional:
 - `PORT` (default: `3000`)
 - `NODE_ENV`
 - `APP_URL` (used for magic links and CORS allowlist)
+- `CORS_ORIGINS` (comma-separated extra origins for credentialed CORS, e.g. `https://app.example.com,https://www.example.com`)
 - `COOKIE_DOMAIN` (normalized to host-only)
 - `INNGEST_EVENT_KEY`
 - `INNGEST_SIGNING_KEY`
@@ -133,9 +134,25 @@ Allowed origins include:
 - `http://127.0.0.1:3000`
 - `http://localhost:3001`
 - `http://127.0.0.1:3001`
-- `APP_URL` if provided
+- `APP_URL` if provided (normalized to origin)
+- Any origins in `CORS_ORIGINS` (comma-separated; each normalized to origin)
 
 Credentials are enabled and preflight is handled.
+
+### Production CORS Example
+
+```env
+NODE_ENV=production
+APP_URL=https://tickmate.yourdomain.com
+CORS_ORIGINS=https://tickmate.yourdomain.com,https://www.tickmate.yourdomain.com
+COOKIE_DOMAIN=.yourdomain.com
+```
+
+For frontend requests, set `NEXT_PUBLIC_API_URL` to your backend API base, for example:
+
+```env
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api
+```
 
 ### Auth and Cookies
 

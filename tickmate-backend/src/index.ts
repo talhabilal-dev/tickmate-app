@@ -16,6 +16,17 @@ import { sql } from "drizzle-orm";
 const app = express();
 app.set("trust proxy", 1);
 
+const normalizeOrigin = (value: string): string | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return undefined;
+  }
+};
+
 const allowedOrigins = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -24,7 +35,19 @@ const allowedOrigins = new Set([
 ]);
 
 if (ENV.APP_URL) {
-  allowedOrigins.add(ENV.APP_URL);
+  const normalizedAppUrl = normalizeOrigin(ENV.APP_URL);
+  if (normalizedAppUrl) {
+    allowedOrigins.add(normalizedAppUrl);
+  }
+}
+
+if (ENV.CORS_ORIGINS) {
+  for (const origin of ENV.CORS_ORIGINS.split(",")) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (normalizedOrigin) {
+      allowedOrigins.add(normalizedOrigin);
+    }
+  }
 }
 
 app.use((req, res, next) => {

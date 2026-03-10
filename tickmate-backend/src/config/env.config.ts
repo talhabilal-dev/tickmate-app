@@ -18,6 +18,7 @@ type EnvConfig = {
   PORT: string | number;
   JWT_SECRET: string | undefined;
   DATABASE_URL: string | undefined;
+  CORS_ORIGINS: string | undefined;
   INNGEST_EVENT_KEY: string | undefined;
   GEMINI_API_KEY: string | undefined;
   INNGEST_SIGNING_KEY: string | undefined;
@@ -36,6 +37,7 @@ export const ENV: EnvConfig = {
   PORT: process.env.PORT || 3000,
   JWT_SECRET: parseEnv(process.env.JWT_SECRET),
   DATABASE_URL: parseEnv(process.env.DATABASE_URL),
+  CORS_ORIGINS: parseEnv(process.env.CORS_ORIGINS),
   INNGEST_EVENT_KEY: parseEnv(process.env.INNGEST_EVENT_KEY),
   GEMINI_API_KEY: parseEnv(process.env.GEMINI_API_KEY),
   INNGEST_SIGNING_KEY: parseEnv(process.env.INNGEST_SIGNING_KEY),
