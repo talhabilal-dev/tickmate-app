@@ -29,7 +29,7 @@ export default function middleware(request: NextRequest) {
   }
 
   // Protect all other matched routes
-  if (!token) {
+  if (!token && pathname !== "/") {
     const url = request.nextUrl.clone();
     url.pathname = SIGNIN_ROUTE;
     return NextResponse.redirect(url);
