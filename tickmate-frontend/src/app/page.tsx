@@ -172,7 +172,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-20">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div
             className="inline-block px-4 py-2 rounded-full bg-gradient-ai/10 border border-primary/20 mb-6 animate-slide-in-up"
@@ -258,7 +258,7 @@ export default function Home() {
                 className="border-primary/10 bg-linear-to-br from-card/50 to-card/30 backdrop-blur hover:border-primary/30 transition-all group animate-slide-in-up"
                 style={{ animationDelay: `${0.6 + i * 0.1}s` }}
               >
-                <CardContent className="pt-6">
+                <CardContent className="">
                   <Icon className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
                   <p className="text-sm text-muted-foreground mb-2">
                     {stat.label}
@@ -276,7 +276,7 @@ export default function Home() {
       {/* Features Section */}
       <section
         id="features"
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 "
       >
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">
@@ -339,7 +339,7 @@ export default function Home() {
               style={{ animationDelay: `${0.15 + i * 0.1}s` }}
             >
               <Card className="border-primary/10 h-full hover:border-primary/30 transition-all group hover:shadow-lg">
-                <CardContent className="pt-8">
+                <CardContent className="">
                   <div className="w-12 h-12 rounded-full gradient-ai flex items-center justify-center mb-4 text-lg font-bold text-primary-foreground group-hover:scale-125 transition-transform group-hover:shadow-lg group-hover:shadow-primary/50">
                     {step.number}
                   </div>
@@ -360,7 +360,7 @@ export default function Home() {
       </section>
 
       {/* Tech Stack Section */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-slide-in-up">
             Built with Modern Tech
@@ -398,7 +398,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <Card className="border-primary/20 shadow-2xl ai-glow bg-linear-to-br from-primary/10 via-accent/5 to-secondary/10 hover:shadow-3xl transition-shadow animate-slide-in-up">
           <CardContent className="pt-16 pb-16 text-center">
             <Sparkles className="w-12 h-12 text-primary mx-auto mb-6 animate-pulse" />
@@ -438,42 +438,18 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-primary/10 mt-20 backdrop-blur-sm bg-background/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gradient-ai animate-pulse"></div>
-              <span className="font-bold text-gradient-ai text-lg">
-                TickMate
-              </span>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold mb-3">Product</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>AI-Powered Tickets</p>
-                <p>Smart Search</p>
-                <p>Team Collaboration</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold mb-3">Company</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>About Us</p>
-                <p>Contact</p>
-                <p>Documentation</p>
-              </div>
-            </div>
-          </div>
+      <footer className="relative z-10 border-t border-primary/10 backdrop-blur-sm bg-background/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
           <div className="border-t border-primary/10 pt-8 flex items-center justify-between flex-wrap gap-4">
             <p className="text-sm text-muted-foreground">
-              Smart ticket management powered by AI. © 2024 TickMate.
+              Smart ticket management powered by AI. © {new Date().getFullYear()} TickMate.
             </p>
             <div className="flex gap-4 text-xs text-muted-foreground">
               <a href="#" className="hover:text-primary transition-colors">
-                Privacy
+                Privacy Policy  
               </a>
               <a href="#" className="hover:text-primary transition-colors">
-                Terms
+                Terms of Service
               </a>
               <a href="#" className="hover:text-primary transition-colors">
                 Status
