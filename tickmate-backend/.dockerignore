@@ -1,9 +1,9 @@
 node_modules
-npm-debug.log
+npm - debug.log
 Dockerfile
-.dockerignore
-.git
-.env
-.env.production
-.env.example
+    .dockerignore
+    .git
+    .env
+    .env.production
+    .env.example
 dist
