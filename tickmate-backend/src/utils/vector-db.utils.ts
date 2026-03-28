@@ -55,8 +55,8 @@ const getEmbeddings = () => {
 
     if (!embeddings) {
         embeddings = new OpenAIEmbeddings({
-            apiKey: ENV.OPENAI_API_KEY,
             model: EMBEDDING_MODEL,
+            openAIApiKey: ENV.OPENAI_API_KEY,
         });
     }
 
@@ -202,6 +202,7 @@ export const searchSimilarResolvedPublicTickets = async (
 
     const queryVector = await getEmbeddings().embedQuery(queryText);
 
+
     await ensureCollection(queryVector.length);
     await ensureCollectionIndexes();
 
@@ -216,6 +217,7 @@ export const searchSimilarResolvedPublicTickets = async (
             ],
         },
     });
+
 
     return results
         .filter((item) => item.score >= (input.minScore ?? minScore))
