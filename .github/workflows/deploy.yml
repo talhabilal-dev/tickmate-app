@@ -1,4 +1,4 @@
-name: Deploy Backend to Oracle VM
+name: Build & Deploy Backend
 
 on:
   push:
@@ -6,44 +6,57 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      # 1. Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      # 2. Login to GHCR
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Build & Push Docker Image
+      - name: Build and Push Image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}/tickmate:latest
+
+          docker build -t $IMAGE ./tickmate-backend
+          docker push $IMAGE
+
+      # 4. Deploy to VM
+      - name: Deploy on VM
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          command_timeout: 20m
+
           script: |
-            set -e
+            IMAGE=ghcr.io/${{ github.repository }}/tickmate:latest
 
-            echo "📦 Navigating to project..."
-            cd /home/ubuntu/projects
+            echo "📥 Pulling latest image..."
+            docker pull $IMAGE
 
-            echo "🔄 Pulling latest code..."
-            git pull origin main
-
-            echo "📂 Moving to backend..."
-            cd tickmate-backend
-
-            echo "🐳 Building Docker image..."
-            docker build -t tickmate .
-
-            echo "🛑 Stopping old container (if exists)..."
+            echo "🛑 Stopping old container..."
             docker stop tickmate || true
             docker rm tickmate || true
 
-            echo "🚀 Starting new container..."
+            echo "🚀 Running new container..."
             docker run --env-file /home/ubuntu/.env.production -d \
               --name tickmate \
               --restart always \
               -p 127.0.0.1:3000:3000 \
-              tickmate
+              $IMAGE
 
-            echo "🧹 Cleaning unused Docker images..."
+            echo "🧹 Cleaning old images..."
             docker image prune -f
 
-            echo "✅ Deployment successful!"
+            echo "✅ Deploy complete"
