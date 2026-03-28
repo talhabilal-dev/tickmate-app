@@ -1,0 +1,49 @@
+name: Deploy Backend to Oracle VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "📦 Navigating to project..."
+            cd /home/ubuntu/projects
+
+            echo "🔄 Pulling latest code..."
+            git pull origin main
+
+            echo "📂 Moving to backend..."
+            cd tickmate-backend
+
+            echo "🐳 Building Docker image..."
+            docker build -t tickmate .
+
+            echo "🛑 Stopping old container (if exists)..."
+            docker stop tickmate || true
+            docker rm tickmate || true
+
+            echo "🚀 Starting new container..."
+            docker run --env-file /home/ubuntu/.env.production -d \
+              --name tickmate \
+              --restart always \
+              -p 127.0.0.1:3000:3000 \
+              tickmate
+
+            echo "🧹 Cleaning unused Docker images..."
+            docker image prune -f
+
+            echo "✅ Deployment successful!"
