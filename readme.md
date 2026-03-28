@@ -1,6 +1,6 @@
 <div align="center">
 
-# TickMate
+#  TickMate
 
 **AI-powered support ticket management that triages, summarizes, and resolves faster.**
 
