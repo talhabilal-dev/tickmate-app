@@ -28,7 +28,7 @@ jobs:
             git pull origin main
 
             echo "📂 Moving to backend..."
-            cd backend
+            cd tickmate-backend
 
             echo "🐳 Building Docker image..."
             docker build -t tickmate .
