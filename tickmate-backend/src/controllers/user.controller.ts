@@ -115,9 +115,9 @@ export const signup = async (req: Request, res: Response) => {
   } catch (error) {
 
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
 
     return sendError(res, 500, {
@@ -153,9 +153,9 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -247,9 +247,9 @@ export const verify = async (req: Request, res: Response) => {
     }
 
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -335,9 +335,9 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -373,9 +373,9 @@ export const logout = async (req: Request, res: Response) => {
   } catch (error) {
 
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
 
     return sendError(res, 500, {
@@ -397,9 +397,9 @@ export const getUser = async (req: Request, res: Response) => {
     return sendSuccess(res, 200, { user: serializeUserResponse(user) });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -504,9 +504,9 @@ export const updateUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -565,9 +565,9 @@ export const changePassword = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -599,9 +599,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
       message: "Internal server error",
@@ -695,9 +695,9 @@ export const resetPassword = async (req: Request, res: Response) => {
     }
 
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
 
     return sendError(res, 500, {
@@ -710,7 +710,6 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
 
   const { username } = req.params as { username: string };
 
-  console.log(username)
 
   const validation = usernameAvailabilitySchema.safeParse({ username });
 
@@ -731,9 +730,9 @@ export const checkUsernameAvailability = async (req: Request, res: Response) => 
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message)
+      console.error("Internal Server Error", error.message)
     } else {
-      console.log("Internal Server Error", error)
+      console.error("Internal Server Error", error)
     }
     return sendError(res, 500, {
 
@@ -812,9 +811,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Internal Server Error", error.message);
+      console.error("Internal Server Error", error.message);
     } else {
-      console.log("Internal Server Error", error);
+      console.error("Internal Server Error", error);
     }
 
     return sendError(res, 500, {

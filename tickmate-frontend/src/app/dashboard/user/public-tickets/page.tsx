@@ -111,6 +111,14 @@ export default function PublicTicketsPage() {
         description: queryText,
         limit: 5,
       });
+
+      if(!response.tickets || response.tickets.length === 0) {
+        toast({
+          title: "No Similar Tickets Found",
+          description: "Try adjusting your description to find related tickets.",
+        });
+      }
+
       setSimilarTickets(
         Array.isArray(response.tickets) ? response.tickets : [],
       );

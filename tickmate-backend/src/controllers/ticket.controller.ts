@@ -23,7 +23,10 @@ import {
 } from "../utils/vector-db.utils.js";
 import { logAuditEventFromRequest } from "../utils/audit-log.utils.js";
 
-export const getSimilarResolvedTickets = async (req: Request, res: Response) => {
+export const getSimilarResolvedTickets = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!req.user?.userId) {
       return sendError(res, 401, { message: "Unauthorized" });
@@ -55,8 +58,16 @@ export const getSimilarResolvedTickets = async (req: Request, res: Response) => 
       searchInput.limit = limit;
     }
 
-    const similarTickets = await searchSimilarResolvedPublicTickets(searchInput);
+    const similarTickets =
+      await searchSimilarResolvedPublicTickets(searchInput);
     const normalizedTickets = similarTickets.map((item) => item.ticket);
+
+    if (normalizedTickets.length === 0) {
+      return sendSuccess(res, 200, {
+        message: "No similar tickets found",
+        tickets: [],
+      });
+    }
 
     return sendSuccess(res, 200, {
       message: "Similar tickets fetched successfully",
@@ -195,7 +206,9 @@ export const getTickets = async (req: Request, res: Response) => {
         updatedAt: ticketsTable.updatedAt,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)))
+      .where(
+        and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)),
+      )
       .orderBy(desc(ticketsTable.createdAt));
 
     return sendSuccess(res, 200, {
@@ -212,7 +225,10 @@ export const getTickets = async (req: Request, res: Response) => {
   }
 };
 
-export const getPublicCompletedTickets = async (req: Request, res: Response) => {
+export const getPublicCompletedTickets = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     if (!req.user?.userId) {
       return sendError(res, 401, { message: "Unauthorized" });
@@ -250,8 +266,10 @@ export const getPublicCompletedTickets = async (req: Request, res: Response) => 
           eq(ticketsTable.status, "completed"),
           eq(ticketsTable.isPublic, true),
           isNull(ticketsTable.deletedAt),
-          typeof category !== "undefined" ? eq(ticketsTable.category, category) : undefined
-        )
+          typeof category !== "undefined"
+            ? eq(ticketsTable.category, category)
+            : undefined,
+        ),
       )
       .orderBy(desc(ticketsTable.updatedAt));
 
@@ -261,8 +279,8 @@ export const getPublicCompletedTickets = async (req: Request, res: Response) => 
       const normalizedSkills = skills.map((skill) => skill.toLowerCase());
       tickets = tickets.filter((ticket) =>
         ticket.relatedSkills.some((relatedSkill) =>
-          normalizedSkills.includes(relatedSkill.toLowerCase())
-        )
+          normalizedSkills.includes(relatedSkill.toLowerCase()),
+        ),
       );
     }
 
@@ -308,7 +326,9 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
         status: ticketsTable.status,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+      .where(
+        and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)),
+      );
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -376,7 +396,10 @@ export const toggleTicketStatus = async (req: Request, res: Response) => {
       }
     } catch (vectorError) {
       if (vectorError instanceof Error) {
-        console.error("Vector sync failed after status update:", vectorError.message);
+        console.error(
+          "Vector sync failed after status update:",
+          vectorError.message,
+        );
       } else {
         console.error("Vector sync failed after status update:", vectorError);
       }
@@ -428,7 +451,12 @@ export const assignedTickets = async (req: Request, res: Response) => {
         updatedAt: ticketsTable.updatedAt,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.assignedTo, userId), isNull(ticketsTable.deletedAt)))
+      .where(
+        and(
+          eq(ticketsTable.assignedTo, userId),
+          isNull(ticketsTable.deletedAt),
+        ),
+      )
       .orderBy(desc(ticketsTable.createdAt));
 
     return sendSuccess(res, 200, {
@@ -452,7 +480,6 @@ export const ticketReply = async (req: Request, res: Response) => {
       return sendError(res, 401, { message: "Unauthorized" });
     }
 
-
     const validation = ticketReplySchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -474,7 +501,9 @@ export const ticketReply = async (req: Request, res: Response) => {
         replies: ticketsTable.replies,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+      .where(
+        and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)),
+      );
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -500,11 +529,14 @@ export const ticketReply = async (req: Request, res: Response) => {
 
     const existingReplies = Array.isArray(ticket.replies) ? ticket.replies : [];
 
-    const updatedReplies = [...existingReplies, {
-      message,
-      createdAt: new Date().toISOString(),
-      createdBy: req.user.userId,
-    }];
+    const updatedReplies = [
+      ...existingReplies,
+      {
+        message,
+        createdAt: new Date().toISOString(),
+        createdBy: req.user.userId,
+      },
+    ];
 
     const [updatedTicket] = await db
       .update(ticketsTable)
@@ -593,7 +625,9 @@ export const getUserTicketSummary = async (req: Request, res: Response) => {
         relatedSkills: ticketsTable.relatedSkills,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)))
+      .where(
+        and(eq(ticketsTable.createdBy, userId), isNull(ticketsTable.deletedAt)),
+      )
       .orderBy(desc(ticketsTable.createdAt));
 
     // 🔹 Compute current summary
@@ -621,8 +655,8 @@ export const getUserTicketSummary = async (req: Request, res: Response) => {
           eq(ticketsTable.createdBy, userId),
           isNull(ticketsTable.deletedAt),
           gte(ticketsTable.createdAt, startOfPrevious),
-          lt(ticketsTable.createdAt, endOfPrevious)
-        )
+          lt(ticketsTable.createdAt, endOfPrevious),
+        ),
       );
 
     const previousSummary = {
@@ -677,7 +711,9 @@ export const deleteTicket = async (req: Request, res: Response) => {
         status: ticketsTable.status,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+      .where(
+        and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)),
+      );
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -687,10 +723,7 @@ export const deleteTicket = async (req: Request, res: Response) => {
 
     const userId = Number(req.user.userId);
 
-    if (
-      ticket.createdBy !== userId &&
-      req.user.role !== "admin"
-    ) {
+    if (ticket.createdBy !== userId && req.user.role !== "admin") {
       return sendError(res, 403, {
         message: "You are not allowed to delete this ticket",
       });
@@ -744,9 +777,15 @@ export const deleteTicket = async (req: Request, res: Response) => {
       await deleteTicketVector(deletedTicket.id);
     } catch (vectorError) {
       if (vectorError instanceof Error) {
-        console.error("Vector delete failed after ticket deletion:", vectorError.message);
+        console.error(
+          "Vector delete failed after ticket deletion:",
+          vectorError.message,
+        );
       } else {
-        console.error("Vector delete failed after ticket deletion:", vectorError);
+        console.error(
+          "Vector delete failed after ticket deletion:",
+          vectorError,
+        );
       }
     }
 
@@ -799,7 +838,9 @@ export const editTicket = async (req: Request, res: Response) => {
         assignedTo: ticketsTable.assignedTo,
       })
       .from(ticketsTable)
-      .where(and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)));
+      .where(
+        and(eq(ticketsTable.id, ticketId), isNull(ticketsTable.deletedAt)),
+      );
 
     if (!ticket) {
       return sendError(res, 404, {
@@ -809,10 +850,7 @@ export const editTicket = async (req: Request, res: Response) => {
 
     const userId = Number(req.user.userId);
 
-    if (
-      ticket.createdBy !== userId &&
-      req.user.role !== "admin"
-    ) {
+    if (ticket.createdBy !== userId && req.user.role !== "admin") {
       return sendError(res, 403, {
         message: "You are not allowed to edit this ticket",
       });
@@ -852,14 +890,17 @@ export const editTicket = async (req: Request, res: Response) => {
     }> = {};
 
     if (typeof title !== "undefined") updateData.title = title;
-    if (typeof description !== "undefined") updateData.description = description;
+    if (typeof description !== "undefined")
+      updateData.description = description;
     if (typeof category !== "undefined") updateData.category = category;
     if (typeof deadline !== "undefined") updateData.deadline = deadline;
     if (typeof status !== "undefined") updateData.status = status;
     if (typeof priority !== "undefined") updateData.priority = priority;
     if (typeof assignedTo !== "undefined") updateData.assignedTo = assignedTo;
-    if (typeof helpfulNotes !== "undefined") updateData.helpfulNotes = helpfulNotes;
-    if (typeof relatedSkills !== "undefined") updateData.relatedSkills = relatedSkills;
+    if (typeof helpfulNotes !== "undefined")
+      updateData.helpfulNotes = helpfulNotes;
+    if (typeof relatedSkills !== "undefined")
+      updateData.relatedSkills = relatedSkills;
     if (typeof isPublic !== "undefined") updateData.isPublic = isPublic;
 
     if (Object.keys(updateData).length === 0) {
@@ -906,7 +947,9 @@ export const editTicket = async (req: Request, res: Response) => {
       targetUserId: updatedTicket.createdBy,
       description: "Ticket updated",
       metadata: {
-        changedFields: Object.keys(updateData).filter((field) => field !== "updatedAt"),
+        changedFields: Object.keys(updateData).filter(
+          (field) => field !== "updatedAt",
+        ),
       },
     });
 
