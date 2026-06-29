@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
     "drizzle:migrate": "drizzle-kit migrate --config drizzle.config.ts",
-    "drizzle:push": "drizzle-kit push --config drizzle.config.ts"
+    "drizzle:push": "drizzle-kit push --config drizzle.config.ts",
+    "seed": "tsx src/scripts/seed.ts",
+    "test:search": "tsx src/scripts/test-search.ts"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +32,7 @@
     "inngest": "^3.52.6",
     "jsonwebtoken": "^9.0.3",
     "langchain": "^1.2.29",
+    "pg": "^8.22.0",
     "resend": "^6.9.3",
     "typescript": "^5.9.3",
     "zod": "^4.3.6"

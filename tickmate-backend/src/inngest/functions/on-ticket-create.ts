@@ -6,6 +6,7 @@ import db from "../../config/db.config.js";
 import { ticketsTable, usersTable } from "../../models/model.js";
 import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { logAuditEvent } from "../../utils/audit-log.utils.js";
+import { upsertResolvedPublicTicketVector } from "../../utils/vector-db.utils.js";
 
 export const onTicketCreated = inngest.createFunction(
   { id: "on-ticket-created", retries: 2 },
@@ -88,6 +89,39 @@ export const onTicketCreated = inngest.createFunction(
         }
 
         return skills;
+      });
+
+      await step.run("create-vector-embedding-if-completed", async () => {
+        try {
+          const [currentTicket] = await db
+            .select({
+              id: ticketsTable.id,
+              title: ticketsTable.title,
+              description: ticketsTable.description,
+              category: ticketsTable.category,
+              status: ticketsTable.status,
+              priority: ticketsTable.priority,
+              helpfulNotes: ticketsTable.helpfulNotes,
+              relatedSkills: ticketsTable.relatedSkills,
+              isPublic: ticketsTable.isPublic,
+              createdBy: ticketsTable.createdBy,
+              assignedTo: ticketsTable.assignedTo,
+              createdAt: ticketsTable.createdAt,
+              updatedAt: ticketsTable.updatedAt,
+            })
+            .from(ticketsTable)
+            .where(eq(ticketsTable.id, ticket.id));
+
+          if (currentTicket && currentTicket.status === "completed" && currentTicket.isPublic) {
+            await upsertResolvedPublicTicketVector(currentTicket);
+          }
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error("Failed to create vector embedding:", error.message);
+          } else {
+            console.error("Failed to create vector embedding:", error);
+          }
+        }
       });
 
       const moderator = await step.run("assign-moderator", async () => {

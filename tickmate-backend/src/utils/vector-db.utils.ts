@@ -21,7 +21,9 @@ type TicketVectorSource = {
 };
 
 type SimilarTicketSearchInput = {
+  title?: string;
   description: string;
+  category?: string;
   limit?: number;
   minScore?: number;
 };
@@ -195,7 +197,11 @@ export const searchSimilarResolvedPublicTickets = async (
       ? configuredMinScore
       : 0.65;
 
-    const queryText = [`Description: ${input.description}`]
+    const queryText = [
+      input.title ? `Title: ${input.title}` : "",
+      input.category ? `Category: ${input.category}` : "",
+      `Description: ${input.description}`,
+    ]
       .filter(Boolean)
       .join("\n");
 
